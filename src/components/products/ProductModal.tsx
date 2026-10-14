@@ -223,7 +223,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     <b className="font-bold text-amber-950 block">Barang "{duplicateProduct.name}" sudah ada di katalog toko!</b>
                     <p className="text-[11px] text-amber-900 leading-relaxed">
                       Sisa stok saat ini masih ada <b className="font-bold text-slate-900 font-mono">{duplicateProduct.current_stock} unit</b>.
-                      Jika Anda baru saja kulakan/membeli pasokan tambahan, <b>tidak perlu membuat barang baru</b>. Cukup klik tombol di bawah untuk langsung menambahkan jumlah stoknya.
+                      Jika Anda baru saja membeli pasokan tambahan, <b>tidak perlu membuat barang baru</b>. Cukup klik tombol di bawah untuk langsung menambahkan jumlah stoknya.
                     </p>
                   </div>
                 </div>
