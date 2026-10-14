@@ -6,7 +6,16 @@ import { CategoryModal } from '../components/products/CategoryModal';
 import type { Product } from '../db/schema';
 import { createProduct, updateProduct, deleteProduct } from '../db/operations';
 import { useToast } from '../components/common/Toast';
-import { Search, Plus, Tag, PackageSearch, X } from 'lucide-react';
+import { Search, Plus, Tag, PackageSearch, X, ArrowUpDown } from 'lucide-react';
+
+export type ProductSortOption = 
+  | 'latest' 
+  | 'name_asc' 
+  | 'name_desc' 
+  | 'stock_asc' 
+  | 'stock_desc' 
+  | 'price_asc' 
+  | 'price_desc';
 
 interface CatalogViewProps {
   onOpenStockIn: (product: Product) => void;
@@ -23,8 +32,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
   const [searchInput, setSearchInput] = useState<string>('');
   const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+  const [sortBy, setSortBy] = useState<ProductSortOption>('latest');
 
-  // 150ms debounce as specified in PRD F-02
+  // 150ms debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchInput);
@@ -32,7 +42,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const { products, categories, refresh } = useProducts(selectedCatId, debouncedQuery);
+  const { products, allProducts, categories, refresh } = useProducts(selectedCatId, debouncedQuery);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
@@ -46,6 +56,53 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     });
     return map;
   }, [categories]);
+
+  // Calculate search-filtered products (all categories) to count accurate numbers per category chip
+  const searchMatchedProducts = useMemo(() => {
+    if (!debouncedQuery.trim()) return allProducts;
+    const q = debouncedQuery.trim().toLowerCase();
+    return allProducts.filter((p) => p.name.toLowerCase().includes(q));
+  }, [allProducts, debouncedQuery]);
+
+  // Total count for "Semua" chip
+  const totalAllCount = searchMatchedProducts.length;
+
+  // Real-time count per category
+  const categoryCountMap = useMemo(() => {
+    const map = new Map<number, number>();
+    categories.forEach((cat) => {
+      if (cat.id) map.set(cat.id, 0);
+    });
+    searchMatchedProducts.forEach((p) => {
+      const current = map.get(p.category_id) || 0;
+      map.set(p.category_id, current + 1);
+    });
+    return map;
+  }, [categories, searchMatchedProducts]);
+
+  // Apply sorting to currently displayed products
+  const sortedProducts = useMemo(() => {
+    const list = [...products];
+    switch (sortBy) {
+      case 'name_asc':
+        return list.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+      case 'name_desc':
+        return list.sort((a, b) => b.name.localeCompare(a.name, 'id', { sensitivity: 'base' }));
+      case 'stock_asc':
+        // Sedikit ke banyak (stok kritis/terendah di atas)
+        return list.sort((a, b) => a.current_stock - b.current_stock);
+      case 'stock_desc':
+        // Banyak ke sedikit
+        return list.sort((a, b) => b.current_stock - a.current_stock);
+      case 'price_asc':
+        return list.sort((a, b) => a.selling_price - b.selling_price);
+      case 'price_desc':
+        return list.sort((a, b) => b.selling_price - a.selling_price);
+      case 'latest':
+      default:
+        return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    }
+  }, [products, sortBy]);
 
   const handleCreateOrUpdateProduct = async (data: {
     id?: number;
@@ -63,7 +120,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         selling_price: data.selling_price,
         current_stock: data.current_stock,
       });
-      showToast(`Barang "${data.name}" berhasil diperbarui`, 'success');
+
+      // Jika kategori diubah dari kategori yang sedang difilter aktif:
+      // Otomatis pindahkan filter aktif ke kategori baru agar produk tetap terlihat!
+      if (selectedCatId !== null && selectedCatId !== data.category_id) {
+        setSelectedCatId(data.category_id);
+        const targetCatName = categoryMap.get(data.category_id) || 'kategori baru';
+        showToast(`Barang "${data.name}" dipindahkan ke kategori "${targetCatName}"`, 'success');
+      } else {
+        showToast(`Barang "${data.name}" berhasil diperbarui`, 'success');
+      }
     } else {
       await createProduct({
         name: data.name,
@@ -107,7 +173,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Cari barang di katalog..."
-              className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-slate-900 placeholder-stone-400 text-xs focus:outline-none focus:border-orange-500 transition"
+              className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-slate-900 placeholder-stone-400 text-xs focus:outline-none focus:border-orange-500 transition font-medium"
             />
             {searchInput && (
               <button
@@ -141,41 +207,78 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </button>
         </div>
 
-        {/* Category Filter Chips Horizontal Scroller */}
+        {/* Category Filter Chips Horizontal Scroller with Counts */}
         <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1">
           <button
             onClick={() => setSelectedCatId(null)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition min-h-[32px] ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition min-h-[32px] flex items-center space-x-1.5 ${
               selectedCatId === null
-                ? 'bg-orange-500 text-white shadow-sm'
+                ? 'bg-orange-600 text-white shadow-sm'
                 : 'bg-stone-100 text-stone-700 hover:text-slate-900 border border-stone-200'
             }`}
           >
-            Semua ({products.length})
+            <span>Semua</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+              selectedCatId === null ? 'bg-white/25 text-white' : 'bg-stone-200 text-stone-700'
+            }`}>
+              {totalAllCount}
+            </span>
           </button>
 
           {categories.map((cat) => {
             const isSelected = selectedCatId === cat.id;
+            const count = categoryCountMap.get(cat.id!) || 0;
+
             return (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCatId(cat.id!)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition min-h-[32px] ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition min-h-[32px] flex items-center space-x-1.5 ${
                   isSelected
-                    ? 'bg-orange-500 text-white shadow-sm'
+                    ? 'bg-orange-600 text-white shadow-sm'
                     : 'bg-stone-100 text-stone-700 hover:text-slate-900 border border-stone-200'
                 }`}
               >
-                {cat.name}
+                <span>{cat.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  isSelected ? 'bg-white/25 text-white' : 'bg-stone-200 text-stone-700'
+                }`}>
+                  {count}
+                </span>
               </button>
             );
           })}
+        </div>
+
+        {/* Sub-bar: Total Counter & Sort Options */}
+        <div className="flex items-center justify-between pt-1 border-t border-stone-100 text-xs">
+          <span className="text-[11px] font-medium text-stone-500">
+            Menampilkan <b className="text-slate-900 font-bold font-mono">{sortedProducts.length}</b> barang
+          </span>
+
+          {/* Sort Selector */}
+          <div className="flex items-center space-x-1.5">
+            <ArrowUpDown className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as ProductSortOption)}
+              className="py-1 px-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-200 text-slate-800 text-[11px] font-bold focus:outline-none focus:border-orange-500 cursor-pointer transition shadow-2xs"
+            >
+              <option value="latest">Terbaru</option>
+              <option value="name_asc">Nama (A - Z)</option>
+              <option value="name_desc">Nama (Z - A)</option>
+              <option value="stock_asc">Stok (Sedikit - Banyak)</option>
+              <option value="stock_desc">Stok (Banyak - Sedikit)</option>
+              <option value="price_asc">Harga Terendah</option>
+              <option value="price_desc">Harga Tertinggi</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Catalog List */}
       <div className="px-4 mt-3 space-y-3">
-        {products.length === 0 ? (
+        {sortedProducts.length === 0 ? (
           <div className="p-8 rounded-2xl bg-white border border-stone-200 text-center my-6 shadow-xs">
             <PackageSearch className="w-10 h-10 text-stone-400 mx-auto mb-2" />
             <h4 className="text-sm font-bold text-slate-900">Tidak ada barang ditemukan</h4>
@@ -193,11 +296,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               className="mt-4 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 inline-flex items-center space-x-1.5"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span className="font-bold">+ Tambah Barang Baru</span>
+              <span className="font-bold">Tambah Barang Baru</span>
             </button>
           </div>
         ) : (
-          products.map((prod) => (
+          sortedProducts.map((prod) => (
             <ProductCard
               key={prod.id}
               product={prod}

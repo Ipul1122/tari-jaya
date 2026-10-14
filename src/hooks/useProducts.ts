@@ -3,20 +3,22 @@ import { db } from '../db/schema';
 import type { Product, Category } from '../db/schema';
 
 export function useProducts(selectedCategoryId?: number | null, searchQuery: string = '') {
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [allCats, allProds] = await Promise.all([
+      const [allCats, rawProds] = await Promise.all([
         db.categories.toArray(),
         db.products.toArray(),
       ]);
 
       setCategories(allCats);
+      setAllProducts(rawProds);
 
-      let filtered = allProds;
+      let filtered = [...rawProds];
       if (selectedCategoryId) {
         filtered = filtered.filter(p => p.category_id === selectedCategoryId);
       }
@@ -26,7 +28,7 @@ export function useProducts(selectedCategoryId?: number | null, searchQuery: str
         filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
       }
 
-      // Sort by updated_at desc
+      // Default sort by updated_at desc
       filtered.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
       setProducts(filtered);
@@ -43,6 +45,7 @@ export function useProducts(selectedCategoryId?: number | null, searchQuery: str
 
   return {
     products,
+    allProducts,
     categories,
     loading,
     refresh,
