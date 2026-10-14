@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductModal } from '../components/products/ProductModal';
+import { ProductDetailModal } from '../components/products/ProductDetailModal';
 import { CategoryModal } from '../components/products/CategoryModal';
 import { Pagination } from '../components/common/Pagination';
 import type { Product } from '../db/schema';
@@ -58,6 +59,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
 
   // Map category id to name
   const categoryMap = useMemo(() => {
@@ -345,6 +347,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 setIsProductModalOpen(true);
               }}
               onDelete={handleDeleteProduct}
+              onViewDetail={(p) => setSelectedProductForDetail(p)}
             />
           ))
         )}
@@ -371,6 +374,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         onSave={handleCreateOrUpdateProduct}
         productToEdit={productToEdit}
         categories={categories}
+        existingProducts={allProducts}
+        onOpenStockInForExisting={(p) => onOpenStockIn(p)}
         onOpenCategoryManager={() => {
           setIsProductModalOpen(false);
           setIsCategoryModalOpen(true);
@@ -384,6 +389,25 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         categories={categories}
         onRefreshCategories={refresh}
         onFilterByCategory={handleFilterByCategoryFromModal}
+      />
+
+      {/* Product Container Detail & Batch History Modal */}
+      <ProductDetailModal
+        isOpen={selectedProductForDetail !== null}
+        onClose={() => setSelectedProductForDetail(null)}
+        product={selectedProductForDetail}
+        categoryName={
+          selectedProductForDetail
+            ? categoryMap.get(selectedProductForDetail.category_id) || 'Umum'
+            : 'Umum'
+        }
+        onStockIn={onOpenStockIn}
+        onStockOut={onOpenStockOut}
+        onEdit={(p) => {
+          setSelectedProductForDetail(null);
+          setProductToEdit(p);
+          setIsProductModalOpen(true);
+        }}
       />
     </div>
   );

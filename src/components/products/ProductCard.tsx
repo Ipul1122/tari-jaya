@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Product } from '../../db/schema';
 import { formatCurrency, formatNumber, isLowStock, isCriticalStock } from '../../utils/formatters';
-import { Plus, Minus, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Minus, MoreVertical, Edit2, Trash2, Boxes } from 'lucide-react';
 import { PopoverConfirm } from '../common/PopoverConfirm';
 
 interface ProductCardProps {
@@ -11,6 +11,7 @@ interface ProductCardProps {
   onStockOut: (product: Product) => void;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
+  onViewDetail?: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -20,6 +21,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onStockOut,
   onEdit,
   onDelete,
+  onViewDetail,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -38,10 +40,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Header Bar */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-bold text-slate-900 tracking-tight leading-snug truncate">
-            {product.name}
-          </h3>
+        <div 
+          onClick={() => onViewDetail?.(product)}
+          className="flex-1 min-w-0 cursor-pointer group"
+          title="Klik untuk melihat detail & riwayat pasokan barang"
+        >
+          <div className="flex items-center space-x-1.5">
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight leading-snug truncate group-hover:text-orange-600 transition">
+              {product.name}
+            </h3>
+            <Boxes className="w-3.5 h-3.5 text-stone-400 group-hover:text-orange-500 transition shrink-0 opacity-0 group-hover:opacity-100" />
+          </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-700 border border-stone-200 truncate max-w-[120px]">
               {categoryName}
@@ -81,6 +90,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 onClick={() => setMenuOpen(false)}
               />
               <div className="absolute right-0 top-8 z-30 w-36 rounded-xl bg-white border border-stone-200 shadow-xl py-1 animate-fade-in">
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onViewDetail?.(product);
+                  }}
+                  className="w-full px-3 py-2 text-xs text-left text-slate-800 hover:bg-stone-50 flex items-center space-x-2 font-medium"
+                >
+                  <Boxes className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Detail & Pasokan</span>
+                </button>
+
                 <button
                   onClick={() => {
                     setMenuOpen(false);

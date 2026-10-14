@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Product, Category } from '../../db/schema';
 import { formatCurrency, formatRupiahInput, parseRupiahInput } from '../../utils/formatters';
-import { X, PackagePlus, Save, AlertCircle } from 'lucide-react';
+import { X, PackagePlus, Save, AlertCircle, AlertTriangle, Plus } from 'lucide-react';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -17,7 +17,9 @@ interface ProductModalProps {
   }) => Promise<void>;
   productToEdit?: Product | null;
   categories: Category[];
+  existingProducts?: Product[];
   onOpenCategoryManager?: () => void;
+  onOpenStockInForExisting?: (product: Product) => void;
 }
 
 export const ProductModal: React.FC<ProductModalProps> = ({
@@ -26,7 +28,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onSave,
   productToEdit,
   categories,
+  existingProducts = [],
   onOpenCategoryManager,
+  onOpenStockInForExisting,
 }) => {
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
@@ -57,6 +61,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   }, [productToEdit, isOpen, categories]);
 
   if (!isOpen) return null;
+
+  // Cek apakah barang dengan nama yang sama sudah terdaftar di katalog
+  const duplicateProduct = useMemo(() => {
+    if (productToEdit || !name.trim() || existingProducts.length === 0) return null;
+    const target = name.trim().toLowerCase();
+    return existingProducts.find(p => p.name.trim().toLowerCase() === target) || null;
+  }, [name, productToEdit, existingProducts]);
 
   const unitMargin = sellingPrice - costPrice;
   const marginPercentage = costPrice > 0 ? ((unitMargin / costPrice) * 100).toFixed(1) : '0';
@@ -144,6 +155,36 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               placeholder="Contoh: Beras Rojo Lele 5kg"
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-slate-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
             />
+
+            {/* Warning if duplicate name exists */}
+            {duplicateProduct && (
+              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-2 mt-2">
+                <div className="flex items-start space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <b className="font-bold">Barang "{duplicateProduct.name}" sudah ada di katalog!</b>
+                    <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                      Sisa stok saat ini: <b>{duplicateProduct.current_stock} unit</b>.
+                      Untuk barang yang sama (walaupun dibeli dari vendor berbeda), disarankan cukup mencatat <b>Stok Masuk</b> agar stok terakumulasi rapi di satu wadah (container).
+                    </p>
+                  </div>
+                </div>
+
+                {onOpenStockInForExisting && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenStockInForExisting(duplicateProduct);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Catat Stok Masuk untuk Barang Ini</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Kategori */}
