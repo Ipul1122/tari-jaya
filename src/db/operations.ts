@@ -285,3 +285,38 @@ export async function deleteCategory(id: number): Promise<void> {
 
   await db.categories.delete(id);
 }
+
+/**
+ * Gabungkan beberapa produk yang memiliki nama sama ke 1 master produk
+ */
+export async function mergeProducts(masterId: number, sourceIds: number[]): Promise<void> {
+  await db.transaction('rw', db.products, db.stock_mutations, async () => {
+    const master = await db.products.get(masterId);
+    if (!master) throw new Error('Master produk tidak ditemukan');
+
+    let additionalStock = 0;
+    const combinedNotes: string[] = master.notes ? [master.notes] : [];
+
+    for (const srcId of sourceIds) {
+      if (srcId === masterId) continue;
+      const src = await db.products.get(srcId);
+      if (src) {
+        additionalStock += src.current_stock;
+        if (src.notes && !combinedNotes.includes(src.notes)) {
+          combinedNotes.push(src.notes);
+        }
+        // Pindahkan mutasi ke masterId
+        await db.stock_mutations.where('product_id').equals(srcId).modify({ product_id: masterId });
+        // Hapus produk duplikat
+        await db.products.delete(srcId);
+      }
+    }
+
+    // Update master product
+    await db.products.update(masterId, {
+      current_stock: master.current_stock + additionalStock,
+      notes: combinedNotes.join(' | '),
+      updated_at: new Date().toISOString(),
+    });
+  });
+}

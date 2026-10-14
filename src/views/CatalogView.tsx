@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useProducts } from '../hooks/useProducts';
-import { ProductCard } from '../components/products/ProductCard';
+import { ProductContainerCard, type ProductContainerGroup } from '../components/products/ProductContainerCard';
 import { ProductModal } from '../components/products/ProductModal';
 import { ProductDetailModal } from '../components/products/ProductDetailModal';
 import { CategoryModal } from '../components/products/CategoryModal';
 import { Pagination } from '../components/common/Pagination';
 import type { Product } from '../db/schema';
-import { createProduct, updateProduct, deleteProduct } from '../db/operations';
+import { createProduct, updateProduct, deleteProduct, mergeProducts } from '../db/operations';
 import { useToast } from '../components/common/Toast';
 import { Search, Plus, Tag, PackageSearch, X, ArrowUpDown } from 'lucide-react';
 import { formatNumber } from '../utils/formatters';
@@ -93,39 +93,76 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     return map;
   }, [categories, searchMatchedProducts]);
 
-  // Apply sorting to currently displayed products
-  const sortedProducts = useMemo(() => {
-    const list = [...products];
+  // Group products with the same normalized name into containers
+  const productContainers = useMemo(() => {
+    const groupsMap = new Map<string, ProductContainerGroup>();
+
+    for (const prod of products) {
+      const normalizedKey = prod.name.trim().toLowerCase();
+      const existing = groupsMap.get(normalizedKey);
+
+      if (existing) {
+        existing.items.push(prod);
+        existing.total_stock += prod.current_stock;
+        if (new Date(prod.updated_at).getTime() > new Date(existing.latest_updated_at).getTime()) {
+          existing.latest_updated_at = prod.updated_at;
+        }
+      } else {
+        groupsMap.set(normalizedKey, {
+          key: normalizedKey,
+          name: prod.name.trim(),
+          category_id: prod.category_id,
+          total_stock: prod.current_stock,
+          items: [prod],
+          latest_updated_at: prod.updated_at,
+        });
+      }
+    }
+
+    const containerList = Array.from(groupsMap.values());
+
+    // Apply sorting to container groups
     switch (sortBy) {
       case 'name_asc':
-        return list.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+        return containerList.sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
       case 'name_desc':
-        return list.sort((a, b) => b.name.localeCompare(a.name, 'id', { sensitivity: 'base' }));
+        return containerList.sort((a, b) => b.name.localeCompare(a.name, 'id', { sensitivity: 'base' }));
       case 'stock_asc':
         // Sedikit ke banyak (stok kritis/terendah di atas)
-        return list.sort((a, b) => a.current_stock - b.current_stock);
+        return containerList.sort((a, b) => a.total_stock - b.total_stock);
       case 'stock_desc':
         // Banyak ke sedikit
-        return list.sort((a, b) => b.current_stock - a.current_stock);
+        return containerList.sort((a, b) => b.total_stock - a.total_stock);
       case 'price_asc':
-        return list.sort((a, b) => a.selling_price - b.selling_price);
+        return containerList.sort((a, b) => {
+          const minA = Math.min(...a.items.map((i) => i.selling_price));
+          const minB = Math.min(...b.items.map((i) => i.selling_price));
+          return minA - minB;
+        });
       case 'price_desc':
-        return list.sort((a, b) => b.selling_price - a.selling_price);
+        return containerList.sort((a, b) => {
+          const maxA = Math.max(...a.items.map((i) => i.selling_price));
+          const maxB = Math.max(...b.items.map((i) => i.selling_price));
+          return maxB - maxA;
+        });
       case 'latest':
       default:
-        return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        return containerList.sort(
+          (a, b) => new Date(b.latest_updated_at).getTime() - new Date(a.latest_updated_at).getTime()
+        );
     }
   }, [products, sortBy]);
 
-  // Pagination calculation
-  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / itemsPerPage));
+  // Pagination calculation based on container groups
+  const totalContainers = productContainers.length;
+  const totalPages = Math.max(1, Math.ceil(totalContainers / itemsPerPage));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, sortedProducts.length);
+  const endIndex = Math.min(startIndex + itemsPerPage, totalContainers);
 
-  const paginatedProducts = useMemo(() => {
-    return sortedProducts.slice(startIndex, endIndex);
-  }, [sortedProducts, startIndex, endIndex]);
+  const paginatedContainers = useMemo(() => {
+    return productContainers.slice(startIndex, endIndex);
+  }, [productContainers, startIndex, endIndex]);
 
   const handleCreateOrUpdateProduct = async (data: {
     id?: number;
@@ -184,6 +221,23 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const handleFilterByCategoryFromModal = (catId: number, catName: string) => {
     setSelectedCatId(catId);
     showToast(`Menampilkan barang di kategori "${catName}"`, 'info');
+  };
+
+  const handleMergeContainer = async (container: ProductContainerGroup) => {
+    try {
+      if (container.items.length <= 1) return;
+      const master = container.items[0];
+      const sourceIds = container.items.map((i) => i.id!).filter(Boolean);
+      await mergeProducts(master.id!, sourceIds);
+      showToast(
+        `Semua wadah "${container.name}" berhasil disatukan menjadi 1 produk (${container.total_stock} unit)`,
+        'success'
+      );
+      refresh();
+      onProductsChanged?.();
+    } catch (err: any) {
+      showToast(err?.message || 'Gagal menggabungkan wadah produk', 'error');
+    }
   };
 
   return (
@@ -279,12 +333,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         {/* Sub-bar: Showing Counter, Pagination status & Sort Options */}
         <div className="flex items-center justify-between pt-1 border-t border-stone-100 text-xs">
           <span className="text-[11px] font-medium text-stone-500">
-            {sortedProducts.length > 0 ? (
+            {totalContainers > 0 ? (
               <>
                 <b className="text-slate-900 font-bold font-mono">
                   {formatNumber(startIndex + 1)}-{formatNumber(endIndex)}
                 </b>{' '}
-                dari <b className="text-slate-900 font-bold font-mono">{formatNumber(sortedProducts.length)}</b> barang
+                dari <b className="text-slate-900 font-bold font-mono">{formatNumber(totalContainers)}</b> barang
               </>
             ) : (
               '0 barang'
@@ -313,7 +367,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
       {/* Catalog List */}
       <div className="px-4 mt-3 space-y-3">
-        {paginatedProducts.length === 0 ? (
+        {paginatedContainers.length === 0 ? (
           <div className="p-8 rounded-2xl bg-white border border-stone-200 text-center my-6 shadow-xs">
             <PackageSearch className="w-10 h-10 text-stone-400 mx-auto mb-2" />
             <h4 className="text-sm font-bold text-slate-900">Tidak ada barang ditemukan</h4>
@@ -335,11 +389,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </button>
           </div>
         ) : (
-          paginatedProducts.map((prod) => (
-            <ProductCard
-              key={prod.id}
-              product={prod}
-              categoryName={categoryMap.get(prod.category_id) || 'Umum'}
+          paginatedContainers.map((container) => (
+            <ProductContainerCard
+              key={container.key}
+              container={container}
+              categoryName={categoryMap.get(container.category_id) || 'Umum'}
               onStockIn={onOpenStockIn}
               onStockOut={onOpenStockOut}
               onEdit={(p) => {
@@ -348,16 +402,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               }}
               onDelete={handleDeleteProduct}
               onViewDetail={(p) => setSelectedProductForDetail(p)}
+              onMerge={handleMergeContainer}
             />
           ))
         )}
 
         {/* Pagination Navigation */}
-        {sortedProducts.length > 0 && (
+        {totalContainers > 0 && (
           <Pagination
             currentPage={safeCurrentPage}
             totalPages={totalPages}
-            totalItems={sortedProducts.length}
+            totalItems={totalContainers}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             onItemsPerPageChange={setItemsPerPage}
