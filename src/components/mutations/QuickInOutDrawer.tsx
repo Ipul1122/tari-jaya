@@ -114,6 +114,16 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
     return map;
   }, [categories]);
 
+  // Frequency map for product names to detect duplicate items (e.g. multiple "es jeruk")
+  const duplicateNameCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    availableProducts.forEach((p) => {
+      const key = p.name.trim().toLowerCase();
+      map.set(key, (map.get(key) || 0) + 1);
+    });
+    return map;
+  }, [availableProducts]);
+
   // Filtered products list for "Pilih Barang" tab
   const filteredProducts = useMemo(() => {
     return availableProducts.filter((p) => {
@@ -126,7 +136,7 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  // Cart operations (one-tap add, increment, decrement)
+  // Cart operations (one-tap add, increment, decrement, direct typing)
   const getItemQuantity = (productId: number): number => {
     const found = items.find((it) => it.productId === productId);
     return found ? found.quantity : 0;
@@ -135,10 +145,22 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
   const handleAddProduct = (prod: Product) => {
     const existingIndex = items.findIndex((it) => it.productId === prod.id);
     if (existingIndex >= 0) {
+      const currentQty = items[existingIndex].quantity;
+      if (!isStockIn && !allowNegative && currentQty >= prod.current_stock) {
+        showToast(
+          `Stok "${prod.name}" hanya tersedia ${prod.current_stock} unit!`,
+          'error'
+        );
+        return;
+      }
       const updated = [...items];
-      updated[existingIndex].quantity += 1;
+      updated[existingIndex].quantity = currentQty + 1;
       setItems(updated);
     } else {
+      if (!isStockIn && !allowNegative && prod.current_stock <= 0) {
+        showToast(`Stok "${prod.name}" sudah habis (0 unit)!`, 'error');
+        return;
+      }
       setItems((prev) => [
         ...prev,
         {
@@ -167,13 +189,72 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
     }
   };
 
+  const handleDirectQuantityChange = (prod: Product, rawValue: string) => {
+    // If empty string, keep item in cart with quantity 0 so input doesn't vanish while typing
+    if (rawValue.trim() === '') {
+      const existingIndex = items.findIndex((it) => it.productId === prod.id);
+      if (existingIndex >= 0) {
+        const updated = [...items];
+        updated[existingIndex].quantity = 0;
+        setItems(updated);
+      }
+      return;
+    }
+
+    let parsed = parseInt(rawValue, 10);
+    if (isNaN(parsed) || parsed < 0) parsed = 0;
+
+    // Check stock limit for OUT
+    if (!isStockIn && !allowNegative && parsed > prod.current_stock) {
+      parsed = prod.current_stock;
+      showToast(
+        `Stok "${prod.name}" hanya tersedia ${prod.current_stock} unit!`,
+        'error'
+      );
+    }
+
+    const existingIndex = items.findIndex((it) => it.productId === prod.id);
+    if (existingIndex >= 0) {
+      const updated = [...items];
+      updated[existingIndex].quantity = parsed;
+      setItems(updated);
+    } else if (parsed > 0) {
+      setItems((prev) => [
+        ...prev,
+        {
+          productId: prod.id!,
+          product: prod,
+          quantity: parsed,
+          unitPrice: isStockIn ? prod.cost_price : prod.selling_price,
+          notes: '',
+        },
+      ]);
+    }
+  };
+
+  const handleInputBlur = (prodId: number) => {
+    const existing = items.find((it) => it.productId === prodId);
+    if (existing && existing.quantity <= 0) {
+      setItems((prev) => prev.filter((it) => it.productId !== prodId));
+    }
+  };
+
   const handleRemoveItem = (index: number) => {
     setItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const updateItemQty = (index: number, newQty: number) => {
     const updated = [...items];
-    updated[index].quantity = Math.max(1, newQty);
+    const targetItem = updated[index];
+    let qty = Math.max(1, newQty);
+    if (!isStockIn && !allowNegative && qty > targetItem.product.current_stock) {
+      qty = Math.max(1, targetItem.product.current_stock);
+      showToast(
+        `Stok "${targetItem.product.name}" hanya tersedia ${targetItem.product.current_stock} unit!`,
+        'error'
+      );
+    }
+    updated[index].quantity = qty;
     setItems(updated);
   };
 
@@ -210,8 +291,9 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (items.length === 0) {
-      setError('Daftar transaksi masih kosong. Silakan pilih minimal 1 barang.');
+    const validItems = items.filter((it) => it.quantity > 0);
+    if (validItems.length === 0) {
+      setError('Daftar transaksi masih kosong. Silakan pilih minimal 1 barang dengan jumlah minimal 1.');
       return;
     }
 
@@ -228,17 +310,17 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
 
       if (isStockIn) {
         await recordBulkStockIn(
-          items.map((it) => ({
+          validItems.map((it) => ({
             productId: it.productId,
             quantity: it.quantity,
             unitCost: it.unitPrice,
             notes: it.notes?.trim(),
           }))
         );
-        showToast(`Berhasil mencatat barang masuk (${items.length} macam barang)`, 'success');
+        showToast(`Berhasil mencatat barang masuk (${validItems.length} macam barang)`, 'success');
       } else {
         await recordBulkStockOut(
-          items.map((it) => ({
+          validItems.map((it) => ({
             productId: it.productId,
             quantity: it.quantity,
             unitPrice: it.unitPrice,
@@ -247,7 +329,7 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
           })),
           allowNegative
         );
-        showToast(`Berhasil mencatat barang keluar (${items.length} macam barang)`, 'success');
+        showToast(`Berhasil mencatat barang keluar (${validItems.length} macam barang)`, 'success');
       }
 
       onSuccess();
@@ -418,6 +500,8 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                     const categoryName = categoryMap.get(p.category_id) || 'Umum';
                     const displayPrice = isStockIn ? p.cost_price : p.selling_price;
                     const isLow = p.current_stock <= 9;
+                    const isDuplicate = (duplicateNameCountMap.get(p.name.trim().toLowerCase()) || 0) > 1;
+                    const isMaxStockReached = !isStockIn && !allowNegative && qtyInCart >= p.current_stock;
 
                     return (
                       <div
@@ -430,14 +514,33 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                       >
                         {/* Product Meta */}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                             <h4 className="text-xs font-bold text-slate-900 truncate">{p.name}</h4>
                             <span className="text-[10px] px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 font-medium shrink-0">
                               {categoryName}
                             </span>
+                            {isDuplicate && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+                                Wadah #{p.id}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center space-x-3 mt-1 text-[11px]">
+                          {/* Catatan Pasokan / Vendor Note */}
+                          {p.notes ? (
+                            <div className="mt-1 flex items-center space-x-1.5 text-[11px] text-amber-900 bg-amber-50/90 px-2 py-0.5 rounded-lg border border-amber-200/80 max-w-fit">
+                              <span className="font-bold text-[10px] text-amber-700 uppercase tracking-wider shrink-0">
+                                Catatan:
+                              </span>
+                              <span className="font-medium truncate max-w-[220px]">{p.notes}</span>
+                            </div>
+                          ) : isDuplicate ? (
+                            <div className="mt-1 text-[10px] text-stone-400 italic">
+                              Tanpa catatan khusus
+                            </div>
+                          ) : null}
+
+                          <div className="flex items-center space-x-3 mt-1.5 text-[11px]">
                             <span className="font-mono font-bold text-slate-800">
                               {formatCurrency(displayPrice)}
                             </span>
@@ -452,7 +555,7 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                           </div>
                         </div>
 
-                        {/* Fast Tap Stepper / Add Button */}
+                        {/* Fast Tap Stepper / Direct Type Input */}
                         <div className="shrink-0">
                           {isSelected ? (
                             <div className="flex items-center space-x-1 bg-white border border-orange-300 rounded-xl p-0.5 shadow-2xs">
@@ -460,28 +563,51 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                                 type="button"
                                 onClick={() => handleDecrementProduct(p.id!)}
                                 className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-slate-800 flex items-center justify-center font-bold active:scale-95 transition"
+                                title="Kurangi 1 unit"
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="w-7 text-center font-mono font-bold text-xs text-orange-700">
-                                {qtyInCart}
-                              </span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={qtyInCart === 0 ? '' : qtyInCart}
+                                onChange={(e) => handleDirectQuantityChange(p, e.target.value)}
+                                onBlur={() => handleInputBlur(p.id!)}
+                                placeholder="0"
+                                className="w-11 h-7 text-center font-mono font-bold text-xs text-orange-700 bg-orange-50/60 border border-orange-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition"
+                                title="Ketik jumlah unit yang diinginkan"
+                              />
                               <button
                                 type="button"
+                                disabled={isMaxStockReached}
                                 onClick={() => handleAddProduct(p)}
-                                className="w-7 h-7 rounded-lg bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center font-bold active:scale-95 transition"
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold transition ${
+                                  isMaxStockReached
+                                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-50'
+                                    : 'bg-orange-600 hover:bg-orange-700 text-white active:scale-95'
+                                }`}
+                                title={
+                                  isMaxStockReached
+                                    ? `Stok maksimal ${p.current_stock} unit`
+                                    : 'Tambah 1 unit'
+                                }
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
+                          ) : !isStockIn && !allowNegative && p.current_stock <= 0 ? (
+                            <span className="h-8 px-2.5 rounded-xl bg-stone-100 text-stone-400 font-bold text-[11px] flex items-center border border-stone-200 cursor-not-allowed">
+                              Habis
+                            </span>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleAddProduct(p)}
-                              className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-orange-500 hover:text-white border border-stone-200 text-slate-800 font-bold text-xs flex items-center space-x-1 active:scale-95 transition"
+                              className="h-8 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs flex items-center space-x-1 active:scale-95 transition border border-orange-200"
                             >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Tambah</span>
+                              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                              <span>Pilih</span>
                             </button>
                           )}
                         </div>
@@ -552,6 +678,12 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                               <span className="text-[10px] font-mono text-stone-500 block">
                                 Sisa stok: <b>{formatNumber(item.product.current_stock)}</b> unit
                               </span>
+                              {item.product.notes && (
+                                <div className="mt-1 flex items-center space-x-1 text-[10px] text-amber-900 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/80 max-w-fit">
+                                  <span className="font-bold text-amber-700 uppercase tracking-wider shrink-0">Catatan:</span>
+                                  <span className="truncate max-w-[200px]">{item.product.notes}</span>
+                                </div>
+                              )}
                             </div>
 
                             <button
@@ -582,6 +714,7 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                                 <input
                                   type="number"
                                   min="1"
+                                  max={!isStockIn && !allowNegative ? item.product.current_stock : undefined}
                                   value={item.quantity}
                                   onChange={(e) =>
                                     updateItemQty(index, parseInt(e.target.value) || 1)
@@ -590,8 +723,18 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
                                 />
                                 <button
                                   type="button"
+                                  disabled={!isStockIn && !allowNegative && item.quantity >= item.product.current_stock}
                                   onClick={() => updateItemQty(index, item.quantity + 1)}
-                                  className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-300 text-slate-800 font-bold flex items-center justify-center active:scale-95 transition"
+                                  className={`w-7 h-7 rounded-lg border flex items-center justify-center transition font-bold ${
+                                    !isStockIn && !allowNegative && item.quantity >= item.product.current_stock
+                                      ? 'bg-stone-200 text-stone-400 border-stone-200 cursor-not-allowed opacity-50'
+                                      : 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-slate-800 active:scale-95'
+                                  }`}
+                                  title={
+                                    !isStockIn && !allowNegative && item.quantity >= item.product.current_stock
+                                      ? `Stok maksimal ${item.product.current_stock} unit`
+                                      : 'Tambah 1 unit'
+                                  }
                                 >
                                   <Plus className="w-3 h-3" />
                                 </button>
