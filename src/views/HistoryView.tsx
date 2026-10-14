@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useMutations } from '../hooks/useMutations';
 import { MutationListItem } from '../components/mutations/MutationListItem';
+import { Pagination } from '../components/common/Pagination';
 import { voidMutation } from '../db/operations';
 import { useToast } from '../components/common/Toast';
 import { formatCurrency, formatNumber } from '../utils/formatters';
@@ -17,7 +18,16 @@ export const HistoryView: React.FC = () => {
   const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
   const [filterDate, setFilterDate] = useState<string>('');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(15);
+
   const { mutations, refresh } = useMutations(filterType, filterDate);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, filterDate]);
 
   const handleVoid = async (id: number) => {
     try {
@@ -29,7 +39,7 @@ export const HistoryView: React.FC = () => {
     }
   };
 
-  // Calculate totals from filtered list
+  // Calculate totals from filtered list (across all pages)
   const totalInValue = mutations
     .filter(m => m.type === 'IN')
     .reduce((acc, m) => acc + m.quantity * m.unit_cost, 0);
@@ -39,6 +49,16 @@ export const HistoryView: React.FC = () => {
   const totalProfit = mutations
     .filter(m => m.type === 'OUT')
     .reduce((acc, m) => acc + m.gross_profit, 0);
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(mutations.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, mutations.length);
+
+  const paginatedMutations = useMemo(() => {
+    return mutations.slice(startIndex, endIndex);
+  }, [mutations, startIndex, endIndex]);
 
   return (
     <div className="flex-1 pb-24 overflow-y-auto">
@@ -142,9 +162,23 @@ export const HistoryView: React.FC = () => {
             </p>
           </div>
         ) : (
-          mutations.map((m) => (
+          paginatedMutations.map((m) => (
             <MutationListItem key={m.id} mutation={m} onVoid={handleVoid} />
           ))
+        )}
+
+        {/* Pagination Navigation */}
+        {mutations.length > 0 && (
+          <Pagination
+            currentPage={safeCurrentPage}
+            totalPages={totalPages}
+            totalItems={mutations.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemName="transaksi"
+            itemsPerPageOptions={[15, 30, 50]}
+          />
         )}
       </div>
     </div>

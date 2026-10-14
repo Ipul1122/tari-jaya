@@ -3,10 +3,12 @@ import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductModal } from '../components/products/ProductModal';
 import { CategoryModal } from '../components/products/CategoryModal';
+import { Pagination } from '../components/common/Pagination';
 import type { Product } from '../db/schema';
 import { createProduct, updateProduct, deleteProduct } from '../db/operations';
 import { useToast } from '../components/common/Toast';
 import { Search, Plus, Tag, PackageSearch, X, ArrowUpDown } from 'lucide-react';
+import { formatNumber } from '../utils/formatters';
 
 export type ProductSortOption = 
   | 'latest' 
@@ -34,6 +36,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [debouncedQuery, setDebouncedQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<ProductSortOption>('latest');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+
   // 150ms debounce
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,6 +49,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   }, [searchInput]);
 
   const { products, allProducts, categories, refresh } = useProducts(selectedCatId, debouncedQuery);
+
+  // Reset page to 1 whenever filters or sorting changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCatId, debouncedQuery, sortBy]);
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
@@ -103,6 +114,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         return list.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
     }
   }, [products, sortBy]);
+
+  // Pagination calculation
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, sortedProducts.length);
+
+  const paginatedProducts = useMemo(() => {
+    return sortedProducts.slice(startIndex, endIndex);
+  }, [sortedProducts, startIndex, endIndex]);
 
   const handleCreateOrUpdateProduct = async (data: {
     id?: number;
@@ -250,10 +271,19 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           })}
         </div>
 
-        {/* Sub-bar: Total Counter & Sort Options */}
+        {/* Sub-bar: Showing Counter, Pagination status & Sort Options */}
         <div className="flex items-center justify-between pt-1 border-t border-stone-100 text-xs">
           <span className="text-[11px] font-medium text-stone-500">
-            Menampilkan <b className="text-slate-900 font-bold font-mono">{sortedProducts.length}</b> barang
+            {sortedProducts.length > 0 ? (
+              <>
+                <b className="text-slate-900 font-bold font-mono">
+                  {formatNumber(startIndex + 1)}-{formatNumber(endIndex)}
+                </b>{' '}
+                dari <b className="text-slate-900 font-bold font-mono">{formatNumber(sortedProducts.length)}</b> barang
+              </>
+            ) : (
+              '0 barang'
+            )}
           </span>
 
           {/* Sort Selector */}
@@ -278,7 +308,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
       {/* Catalog List */}
       <div className="px-4 mt-3 space-y-3">
-        {sortedProducts.length === 0 ? (
+        {paginatedProducts.length === 0 ? (
           <div className="p-8 rounded-2xl bg-white border border-stone-200 text-center my-6 shadow-xs">
             <PackageSearch className="w-10 h-10 text-stone-400 mx-auto mb-2" />
             <h4 className="text-sm font-bold text-slate-900">Tidak ada barang ditemukan</h4>
@@ -300,7 +330,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             </button>
           </div>
         ) : (
-          sortedProducts.map((prod) => (
+          paginatedProducts.map((prod) => (
             <ProductCard
               key={prod.id}
               product={prod}
@@ -314,6 +344,20 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               onDelete={handleDeleteProduct}
             />
           ))
+        )}
+
+        {/* Pagination Navigation */}
+        {sortedProducts.length > 0 && (
+          <Pagination
+            currentPage={safeCurrentPage}
+            totalPages={totalPages}
+            totalItems={sortedProducts.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemName="barang"
+            itemsPerPageOptions={[10, 20, 50]}
+          />
         )}
       </div>
 
