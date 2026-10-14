@@ -175,6 +175,7 @@ export async function voidMutation(mutationId: number): Promise<void> {
  */
 export async function createProduct(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
   if (!productData.name.trim()) throw new Error('Nama barang tidak boleh kosong');
+  if (!productData.category_id || productData.category_id <= 0) throw new Error('Kategori barang wajib dipilih');
   if (productData.cost_price < 0) throw new Error('Harga beli/modal tidak boleh negatif');
   if (productData.selling_price < 0) throw new Error('Harga jual tidak boleh negatif');
 
@@ -186,6 +187,7 @@ export async function createProduct(productData: Omit<Product, 'id' | 'created_a
     const id = await db.products.add({
       ...productData,
       name: productData.name.trim(),
+      category_id: productData.category_id,
       current_stock: initialStock,
       cost_price: Math.round(productData.cost_price),
       selling_price: Math.round(productData.selling_price),
@@ -219,6 +221,7 @@ export async function updateProduct(
   updates: Partial<Omit<Product, 'id' | 'created_at'>>
 ): Promise<void> {
   if (updates.name && !updates.name.trim()) throw new Error('Nama barang tidak boleh kosong');
+  if (updates.category_id !== undefined && updates.category_id <= 0) throw new Error('Kategori barang wajib dipilih');
   if (updates.cost_price !== undefined && updates.cost_price < 0) throw new Error('Harga modal tidak boleh negatif');
   if (updates.selling_price !== undefined && updates.selling_price < 0) throw new Error('Harga jual tidak boleh negatif');
 

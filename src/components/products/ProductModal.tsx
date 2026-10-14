@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Product, Category } from '../../db/schema';
 import { formatCurrency, formatRupiahInput, parseRupiahInput } from '../../utils/formatters';
-import { X, PackagePlus, Save, AlertCircle, AlertTriangle, Plus } from 'lucide-react';
+import { X, PackagePlus, Save, AlertCircle, AlertTriangle, Plus, Sparkles } from 'lucide-react';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -33,7 +33,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onOpenStockInForExisting,
 }) => {
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
+  const [categoryId, setCategoryId] = useState<number>(0);
+  const [categorySource, setCategorySource] = useState<'default' | 'auto' | 'manual'>('default');
+  const [autoCategoryNotice, setAutoCategoryNotice] = useState<string | null>(null);
   const [costPrice, setCostPrice] = useState<number>(0);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [initialStock, setInitialStock] = useState<number>(0);
@@ -45,27 +47,72 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     if (productToEdit) {
       setName(productToEdit.name);
       setCategoryId(productToEdit.category_id);
+      setCategorySource('manual');
       setCostPrice(productToEdit.cost_price);
       setSellingPrice(productToEdit.selling_price);
       setInitialStock(productToEdit.current_stock);
       setNotes(productToEdit.notes || '');
     } else {
       setName('');
-      setCategoryId(categories[0]?.id || 1);
+      // Default ke 0 ("Pilih Kategori") untuk barang baru
+      setCategoryId(0);
+      setCategorySource('default');
       setCostPrice(0);
       setSellingPrice(0);
       setInitialStock(0);
       setNotes('');
     }
+    setAutoCategoryNotice(null);
     setError(null);
-  }, [productToEdit, isOpen, categories]);
+  }, [productToEdit, isOpen]);
 
-  // Cek apakah barang dengan nama yang sama sudah terdaftar di katalog
+  // Cek apakah barang dengan nama yang sama persis sudah terdaftar di katalog
   const duplicateProduct = useMemo(() => {
     if (productToEdit || !name.trim() || existingProducts.length === 0) return null;
     const target = name.trim().toLowerCase();
     return existingProducts.find(p => p.name.trim().toLowerCase() === target) || null;
   }, [name, productToEdit, existingProducts]);
+
+  // Handler otomatis saat user mengetik nama barang
+  const handleNameChange = (newName: string) => {
+    setName(newName);
+    if (productToEdit) return; // Mode edit tetap menjaga kategori yang sudah ada
+
+    const trimmed = newName.trim().toLowerCase();
+    if (!trimmed) {
+      // Jika nama dikosongkan dan kategori di-set otomatis, kembalikan ke default pilih kategori
+      if (categorySource === 'auto') {
+        setCategoryId(0);
+        setCategorySource('default');
+        setAutoCategoryNotice(null);
+      }
+      return;
+    }
+
+    // Cari apakah barang dengan nama ini sudah pernah diinput sebelumnya
+    const matched = existingProducts.find(
+      (p) => p.name.trim().toLowerCase() === trimmed
+    );
+
+    if (matched && matched.category_id) {
+      // Otomatis pindahkan kategori ke kategori barang yang pernah diinput
+      setCategoryId(matched.category_id);
+      setCategorySource('auto');
+      const targetCat = categories.find((c) => c.id === matched.category_id);
+      const catName = targetCat ? targetCat.name : 'Kategori Terdaftar';
+      setAutoCategoryNotice(
+        `Kategori otomatis dialihkan ke "${catName}" karena barang "${matched.name}" sudah pernah diinput sebelumnya.`
+      );
+    } else {
+      // Jika belum pernah diinput sama sekali (barang baru):
+      // Kembalikan ke default 0 ("Pilih Kategori") jika sebelumnya berubah karena auto-detect
+      if (categorySource === 'auto') {
+        setCategoryId(0);
+        setCategorySource('default');
+        setAutoCategoryNotice(null);
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -76,6 +123,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     e.preventDefault();
     if (!name.trim()) {
       setError('Nama barang tidak boleh kosong.');
+      return;
+    }
+    if (!categoryId || categoryId === 0) {
+      setError('Silakan pilih kategori barang terlebih dahulu.');
       return;
     }
     if (costPrice < 0) {
@@ -149,12 +200,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </label>
             <input
               type="text"
+              list="existing-product-names"
               required
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Beras Rojo Lele 5kg"
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Contoh: Es Teh Manis"
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-slate-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
             />
+
+            <datalist id="existing-product-names">
+              {Array.from(new Set(existingProducts.map((p) => p.name))).map((pName) => (
+                <option key={pName} value={pName} />
+              ))}
+            </datalist>
 
             {/* Warning if duplicate name exists */}
             {duplicateProduct && (
@@ -205,15 +263,37 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </div>
             <select
               value={categoryId}
-              onChange={(e) => setCategoryId(Number(e.target.value))}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-slate-900 text-sm focus:outline-none focus:border-orange-500"
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                setCategoryId(val);
+                setCategorySource(val === 0 ? 'default' : 'manual');
+                setAutoCategoryNotice(null);
+              }}
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white border text-sm focus:outline-none transition ${
+                categoryId === 0
+                  ? 'border-amber-300 text-stone-500 font-medium'
+                  : 'border-stone-300 text-slate-900 font-semibold focus:border-orange-500'
+              }`}
             >
+              <option value={0} disabled>
+                -- Pilih Kategori --
+              </option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} className="text-slate-900 font-medium">
                   {c.name}
                 </option>
               ))}
             </select>
+
+            {/* Auto Category Notice Feedback */}
+            {autoCategoryNotice && (
+              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center space-x-2 mt-2 animate-fade-in shadow-2xs">
+                <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="font-semibold text-[11px] leading-tight">
+                  {autoCategoryNotice}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Pricing Grid */}
