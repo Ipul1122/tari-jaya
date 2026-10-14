@@ -60,14 +60,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     setError(null);
   }, [productToEdit, isOpen, categories]);
 
-  if (!isOpen) return null;
-
   // Cek apakah barang dengan nama yang sama sudah terdaftar di katalog
   const duplicateProduct = useMemo(() => {
     if (productToEdit || !name.trim() || existingProducts.length === 0) return null;
     const target = name.trim().toLowerCase();
     return existingProducts.find(p => p.name.trim().toLowerCase() === target) || null;
   }, [name, productToEdit, existingProducts]);
+
+  if (!isOpen) return null;
 
   const unitMargin = sellingPrice - costPrice;
   const marginPercentage = costPrice > 0 ? ((unitMargin / costPrice) * 100).toFixed(1) : '0';
