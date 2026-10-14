@@ -23,8 +23,8 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({ mutation, on
   };
 
   const rollbackDescription = isIn
-    ? `Stok "${mutation.product_name}" akan dikurangi ${mutation.quantity} unit kembali ke nilai sebelum kulakan ini.`
-    : `Stok "${mutation.product_name}" akan ditambah ${mutation.quantity} unit kembali ke nilai sebelum penjualan ini.`;
+    ? `Stok "${mutation.product_name}" akan dikurangi ${mutation.quantity} unit kembali ke nilai sebelum transaksi masuk ini.`
+    : `Stok "${mutation.product_name}" akan ditambah ${mutation.quantity} unit kembali ke nilai sebelum transaksi keluar ini.`;
 
   return (
     <div className="relative bg-white border border-stone-200/90 rounded-2xl p-3.5 shadow-sm space-y-2.5 text-slate-900">
@@ -91,13 +91,13 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({ mutation, on
             title="Batalkan mutasi dan rollback stok"
           >
             <RotateCcw className="w-3 h-3 text-red-600" />
-            <span className="text-[10px] text-red-600 font-bold">Batalkan (Void)</span>
+            <span className="text-[10px] text-red-600 font-bold">Batalkan</span>
           </button>
 
           {/* Anchored Popover Confirmation */}
           <PopoverConfirm
             isOpen={showConfirmVoid}
-            title="Batalkan Transaksi (Void)?"
+            title="Batalkan Transaksi?"
             description={rollbackDescription}
             confirmLabel="Ya, Batalkan"
             cancelLabel="Kembali"

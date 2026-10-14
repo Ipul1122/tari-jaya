@@ -4,8 +4,9 @@ import type { ReportPeriod } from '../hooks/useReports';
 import { PeriodFilter } from '../components/reports/PeriodFilter';
 import { MetricCard } from '../components/reports/MetricCard';
 import { exportDatabaseToJson, restoreDatabaseFromJson } from '../db/backup';
+import { exportReportsToExcel } from '../utils/exportExcel';
 import { useToast } from '../components/common/Toast';
-import { formatCurrency, formatNumber } from '../utils/formatters';
+import { formatCurrency, formatNumber, formatDate } from '../utils/formatters';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -15,7 +16,8 @@ import {
   Database, 
   HardDrive, 
   ShieldCheck,
-  Trash2
+  Trash2,
+  FileSpreadsheet
 } from 'lucide-react';
 import logoTariJaya from '../assets/logo-tari-jaya.png';
 import { PopoverConfirm } from '../components/common/PopoverConfirm';
@@ -28,9 +30,17 @@ interface ReportsViewProps {
 export const ReportsView: React.FC<ReportsViewProps> = ({ onDataRestored }) => {
   const { showToast } = useToast();
   const [activePeriod, setActivePeriod] = useState<ReportPeriod>('today');
-  const { summary, refresh } = useReports(activePeriod);
+  
+  // Custom date range state (YYYY-MM-DD)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const sevenDaysAgoStr = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+  const [startDate, setStartDate] = useState<string>(sevenDaysAgoStr);
+  const [endDate, setEndDate] = useState<string>(todayStr);
+
+  const { summary, periodMutations, refresh } = useReports(activePeriod, startDate, endDate);
 
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState<boolean>(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState<boolean>(false);
@@ -58,6 +68,30 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onDataRestored }) => {
       showToast(err?.message || 'Gagal mengekspor data cadangan', 'error');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExportingExcel(true);
+      const periodLabel = activePeriod === 'custom'
+        ? (startDate && endDate ? `${formatDate(startDate)} s/d ${formatDate(endDate)}` : 'Rentang Kalender')
+        : activePeriod === 'today' ? 'Hari Ini'
+        : activePeriod === '7days' ? '7 Hari Terakhir'
+        : activePeriod === 'month' ? 'Bulan Ini'
+        : 'Semua Waktu';
+
+      const filename = await exportReportsToExcel({
+        periodLabel,
+        startDate: activePeriod === 'custom' ? startDate : undefined,
+        endDate: activePeriod === 'custom' ? endDate : undefined,
+        mutations: periodMutations,
+      });
+      showToast(`File Excel berhasil diunduh: ${filename}`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Gagal mengekspor data ke Excel', 'error');
+    } finally {
+      setIsExportingExcel(false);
     }
   };
 
@@ -109,13 +143,27 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onDataRestored }) => {
             <BarChart3 className="w-5 h-5 text-orange-600" />
             <h2 className="text-base font-bold text-slate-900">Laporan & Rekap Toko</h2>
           </div>
-          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-orange-100 text-orange-800 border border-orange-200">
-            Offline Analytics
-          </span>
+          {/* Quick Export to Excel Button */}
+          <button
+            onClick={handleExportExcel}
+            disabled={isExportingExcel}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition min-h-[34px]"
+            title="Unduh data laporan ke file Excel spreadsheet (.xlsx)"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>{isExportingExcel ? 'Mengunduh...' : 'Export Excel'}</span>
+          </button>
         </div>
 
-        {/* Period Selector Tabs */}
-        <PeriodFilter currentPeriod={activePeriod} onPeriodChange={setActivePeriod} />
+        {/* Period Selector Tabs with Custom Calendar Range */}
+        <PeriodFilter
+          currentPeriod={activePeriod}
+          onPeriodChange={setActivePeriod}
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+        />
       </div>
 
       {/* Financial Metrics Cards */}
@@ -124,7 +172,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onDataRestored }) => {
           <MetricCard
             label="Total Omzet Penjualan"
             value={formatCurrency(summary.totalOutValue)}
-            subValue={`${formatNumber(summary.totalOutQty)} unit barang laku`}
+            subValue={`${formatNumber(summary.totalOutQty)} unit keluar`}
             icon={<TrendingUp className="w-4 h-4" />}
             colorScheme="orange"
           />
@@ -144,9 +192,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onDataRestored }) => {
 
         <div className="grid grid-cols-2 gap-2.5">
           <MetricCard
-            label="Belanja Masuk (Modal)"
+            label="Belanja Modal"
             value={formatCurrency(summary.totalInValue)}
-            subValue={`${formatNumber(summary.totalInQty)} unit kulakan`}
+            subValue={`${formatNumber(summary.totalInQty)} unit masuk`}
             icon={<HardDrive className="w-4 h-4" />}
             colorScheme="red"
           />
@@ -209,21 +257,33 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onDataRestored }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 pt-1">
-            {/* Export Button */}
+            {/* Export Excel Button */}
+            <button
+              onClick={handleExportExcel}
+              disabled={isExportingExcel}
+              className="py-3 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-xs flex items-center justify-center space-x-2 active:scale-95 transition min-h-[44px]"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>{isExportingExcel ? 'Mengunduh...' : 'Export Excel (.xlsx)'}</span>
+            </button>
+
+            {/* Export JSON Button */}
             <button
               onClick={handleExport}
               disabled={isExporting}
               className="py-3 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-slate-800 font-bold text-xs flex items-center justify-center space-x-2 active:scale-95 transition min-h-[44px]"
             >
               <Download className="w-4 h-4 text-orange-600" />
-              <span>{isExporting ? 'Mengekspor...' : 'Export (.JSON)'}</span>
+              <span>{isExporting ? 'Mengekspor...' : 'Backup (.JSON)'}</span>
             </button>
+          </div>
 
-            {/* Import Button with Popover Confirm */}
+          {/* Import Button with Popover Confirm */}
+          <div className="pt-1">
             <div className="relative">
-              <label className="py-3 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-700 font-bold text-xs flex items-center justify-center space-x-2 active:scale-95 transition cursor-pointer min-h-[44px]">
+              <label className="w-full py-3 px-3 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-700 font-bold text-xs flex items-center justify-center space-x-2 active:scale-95 transition cursor-pointer min-h-[44px]">
                 <Upload className="w-4 h-4 text-blue-600" />
-                <span>Import Cadangan</span>
+                <span>Pulihkan Cadangan (.JSON)</span>
                 <input
                   type="file"
                   accept=".json,application/json"

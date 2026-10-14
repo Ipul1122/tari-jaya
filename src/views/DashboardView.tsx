@@ -93,7 +93,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             colorScheme="emerald"
           />
           <MetricCard
-            label="Belanja Modal (IN)"
+            label="Belanja Modal"
             value={formatCurrency(summary.totalInValue)}
             subValue={`${formatNumber(summary.totalInQty)} unit masuk`}
             icon={<DollarSign className="w-4 h-4" />}
@@ -123,7 +123,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="px-4 mt-4">
         <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 shadow-sm">
           <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wider block mb-2">
-            Aksi Cepat Transaksi (Bisa Bulk / Banyak Barang)
+            Pencatatan Transaksi Cepat
           </span>
           <div className="grid grid-cols-2 gap-2.5">
             {/* Text Button Add GREEN */}
@@ -134,7 +134,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                 <Plus className="w-3.5 h-3.5 text-white stroke-[3]" />
               </div>
-              <span className="text-white font-bold">+ Masuk (Kulakan)</span>
+              <span className="text-white font-bold">Masuk</span>
             </button>
 
             {/* Sub Red for Stock Out */}
@@ -145,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                 <Minus className="w-3.5 h-3.5 text-white stroke-[3]" />
               </div>
-              <span className="text-white font-bold">- Keluar (Terjual)</span>
+              <span className="text-white font-bold">Keluar</span>
             </button>
           </div>
         </div>
@@ -170,7 +170,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="p-6 rounded-2xl bg-white border border-stone-200 text-center shadow-xs">
             <p className="text-xs text-stone-600 font-medium">Belum ada transaksi mutasi hari ini.</p>
             <p className="text-[11px] text-stone-400 mt-1">
-              Gunakan tombol "+ Masuk" atau "- Keluar" di atas untuk mulai mencatat.
+              Gunakan tombol "Masuk" atau "Keluar" di atas untuk mulai mencatat.
             </p>
           </div>
         ) : (

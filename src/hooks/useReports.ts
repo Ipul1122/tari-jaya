@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../db/schema';
 import type { StockMutation } from '../db/schema';
 
-export type ReportPeriod = 'today' | '7days' | 'month' | 'year' | 'all';
+export type ReportPeriod = 'today' | '7days' | 'month' | 'year' | 'all' | 'custom';
 
 export interface ReportSummary {
   totalInValue: number;       // Modal yang dikeluarkan untuk barang masuk
@@ -16,6 +16,8 @@ export interface ReportSummary {
 
 export function useReports(
   period: ReportPeriod = 'today',
+  startDate?: string,
+  endDate?: string,
   customYear?: number,
   customMonth?: number
 ) {
@@ -63,6 +65,21 @@ export function useReports(
           return itemDate.getFullYear() === targetYear;
         }
 
+        if (period === 'custom') {
+          if (startDate && endDate) {
+            const start = new Date(startDate + 'T00:00:00');
+            const end = new Date(endDate + 'T23:59:59.999');
+            return itemDate >= start && itemDate <= end;
+          } else if (startDate) {
+            const start = new Date(startDate + 'T00:00:00');
+            return itemDate >= start;
+          } else if (endDate) {
+            const end = new Date(endDate + 'T23:59:59.999');
+            return itemDate <= end;
+          }
+          return true;
+        }
+
         return true;
       });
 
@@ -101,7 +118,7 @@ export function useReports(
     } finally {
       setLoading(false);
     }
-  }, [period, customYear, customMonth]);
+  }, [period, startDate, endDate, customYear, customMonth]);
 
   useEffect(() => {
     refresh();

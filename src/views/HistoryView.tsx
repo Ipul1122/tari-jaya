@@ -22,7 +22,7 @@ export const HistoryView: React.FC = () => {
   const handleVoid = async (id: number) => {
     try {
       await voidMutation(id);
-      showToast('Transaksi berhasil dibatalkan dan stok dikembalikan (Rollback)', 'info');
+      showToast('Transaksi berhasil dibatalkan dan stok dikembalikan', 'info');
       refresh();
     } catch (err: any) {
       showToast(err?.message || 'Gagal membatalkan transaksi', 'error');
