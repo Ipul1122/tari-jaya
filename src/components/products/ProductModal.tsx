@@ -13,6 +13,7 @@ interface ProductModalProps {
     current_stock: number;
     cost_price: number;
     selling_price: number;
+    notes?: string;
   }) => Promise<void>;
   productToEdit?: Product | null;
   categories: Category[];
@@ -32,6 +33,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [costPrice, setCostPrice] = useState<number>(0);
   const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [initialStock, setInitialStock] = useState<number>(0);
+  const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,12 +44,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setCostPrice(productToEdit.cost_price);
       setSellingPrice(productToEdit.selling_price);
       setInitialStock(productToEdit.current_stock);
+      setNotes(productToEdit.notes || '');
     } else {
       setName('');
       setCategoryId(categories[0]?.id || 1);
       setCostPrice(0);
       setSellingPrice(0);
       setInitialStock(0);
+      setNotes('');
     }
     setError(null);
   }, [productToEdit, isOpen, categories]);
@@ -82,6 +86,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         cost_price: Math.round(costPrice),
         selling_price: Math.round(sellingPrice),
         current_stock: Math.round(initialStock),
+        notes: notes.trim(),
       });
       onClose();
     } catch (err: any) {
@@ -243,6 +248,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               </p>
             </div>
           )}
+
+          {/* Catatan Barang (Opsional) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-900 mb-1.5">
+              Catatan Barang (Opsional)
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Contoh: Titipan supplier X / Dus sedikit penyok"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-stone-300 text-slate-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500"
+            />
+          </div>
 
           {/* Action Button: Text Button Simpan BLUE */}
           <div className="pt-2">

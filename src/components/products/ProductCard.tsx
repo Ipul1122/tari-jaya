@@ -147,6 +147,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
+      {/* Product Notes if present */}
+      {product.notes && (
+        <div className="mt-2 text-[11px] text-stone-600 bg-stone-50 px-2.5 py-1.5 rounded-xl border border-stone-200/70 truncate">
+          <span className="font-semibold text-stone-500">Catatan: </span>
+          <span>{product.notes}</span>
+        </div>
+      )}
+
       {/* Action Buttons: Stock In & Stock Out */}
       <div className="mt-3 pt-2.5 border-t border-stone-100 grid grid-cols-2 gap-2">
         <button

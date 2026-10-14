@@ -13,6 +13,7 @@ export interface Product {
   current_stock: number;
   cost_price: number;     // Harga modal/beli per unit (Integer IDR)
   selling_price: number;  // Harga jual per unit (Integer IDR)
+  notes?: string;         // Catatan/keterangan barang (opsional)
   created_at: string;
   updated_at: string;
 }

@@ -180,6 +180,7 @@ export async function createProduct(productData: Omit<Product, 'id' | 'created_a
 
   const now = new Date().toISOString();
   const initialStock = Math.round(productData.current_stock || 0);
+  const noteText = productData.notes?.trim() || '';
 
   return await db.transaction('rw', db.products, db.stock_mutations, async () => {
     const id = await db.products.add({
@@ -188,6 +189,7 @@ export async function createProduct(productData: Omit<Product, 'id' | 'created_a
       current_stock: initialStock,
       cost_price: Math.round(productData.cost_price),
       selling_price: Math.round(productData.selling_price),
+      notes: noteText,
       created_at: now,
       updated_at: now
     });
@@ -200,7 +202,7 @@ export async function createProduct(productData: Omit<Product, 'id' | 'created_a
         unit_cost: Math.round(productData.cost_price),
         unit_price: Math.round(productData.selling_price),
         gross_profit: 0,
-        notes: 'Stok awal barang baru',
+        notes: noteText || 'Stok awal barang baru',
         timestamp: now
       });
     }
@@ -229,6 +231,7 @@ export async function updateProduct(
   if (updates.cost_price !== undefined) payload.cost_price = Math.round(updates.cost_price);
   if (updates.selling_price !== undefined) payload.selling_price = Math.round(updates.selling_price);
   if (updates.current_stock !== undefined) payload.current_stock = Math.round(updates.current_stock);
+  if (updates.notes !== undefined) payload.notes = updates.notes.trim();
 
   await db.products.update(id, payload);
 }

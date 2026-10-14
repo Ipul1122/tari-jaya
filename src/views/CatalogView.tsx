@@ -132,6 +132,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     current_stock: number;
     cost_price: number;
     selling_price: number;
+    notes?: string;
   }) => {
     if (data.id) {
       await updateProduct(data.id, {
@@ -140,6 +141,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         cost_price: data.cost_price,
         selling_price: data.selling_price,
         current_stock: data.current_stock,
+        notes: data.notes,
       });
 
       // Jika kategori diubah dari kategori yang sedang difilter aktif:
@@ -158,6 +160,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         cost_price: data.cost_price,
         selling_price: data.selling_price,
         current_stock: data.current_stock,
+        notes: data.notes,
       });
       showToast(`Barang "${data.name}" berhasil ditambahkan ke katalog`, 'success');
     }
