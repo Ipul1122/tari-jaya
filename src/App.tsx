@@ -70,7 +70,7 @@ function MainApp() {
 
   const titles: Record<NavTab, { title: string; subtitle: string }> = {
     dashboard: { title: 'Tari Jaya', subtitle: 'Dasbor Transaksi Toko' },
-    catalog: { title: 'Katalog Barang', subtitle: `${products.length} Jenis Produk Terdaftar` },
+    catalog: { title: 'Barang', subtitle: `${products.length} Jenis Produk Terdaftar` },
     history: { title: 'Riwayat Mutasi', subtitle: 'Audit Log Keluar & Masuk' },
     debts: { title: 'Buku Hutang', subtitle: `${activeDebtTotalCount} Catatan Aktif Belum Lunas` },
     reports: { title: 'Laporan Finansial', subtitle: 'Kalkulasi Margin & Cadangan' },
