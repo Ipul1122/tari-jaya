@@ -1,18 +1,20 @@
 import React from 'react';
-import { LayoutDashboard, Boxes, ArrowLeftRight, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Boxes, ArrowLeftRight, BookOpenText, BarChart3 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'catalog' | 'history' | 'reports';
+export type NavTab = 'dashboard' | 'catalog' | 'history' | 'debts' | 'reports';
 
 interface BottomNavProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
   lowStockCount?: number;
+  activeDebtCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   onTabChange,
   lowStockCount = 0,
+  activeDebtCount = 0,
 }) => {
   const tabs = [
     {
@@ -32,6 +34,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       icon: ArrowLeftRight,
     },
     {
+      id: 'debts' as NavTab,
+      label: 'Hutang',
+      icon: BookOpenText,
+      badge: activeDebtCount > 0 ? activeDebtCount : undefined,
+    },
+    {
       id: 'reports' as NavTab,
       label: 'Laporan',
       icon: BarChart3,
@@ -40,7 +48,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200/90 pb-safe shadow-xl">
-      <div className="max-w-md mx-auto grid grid-cols-4 px-2 py-1.5">
+      <div className="max-w-md mx-auto grid grid-cols-5 px-1 py-1.5">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../db/schema';
 import type { Product, StockMutation } from '../../db/schema';
-import { formatCurrency, formatNumber, formatDateTime, isLowStock, isCriticalStock } from '../../utils/formatters';
+import { formatCurrency, formatNumber, isLowStock, isCriticalStock } from '../../utils/formatters';
+import { DetailMutationCard } from './DetailMutationCard';
 import { 
   X, 
-  ArrowDownRight, 
   ArrowUpRight, 
   Plus, 
   Minus, 
@@ -20,7 +20,6 @@ interface ProductDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  categoryName?: string;
   onStockIn: (product: Product) => void;
   onStockOut: (product: Product) => void;
   onEdit: (product: Product) => void;
@@ -30,7 +29,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   isOpen,
   onClose,
   product,
-  categoryName = 'Umum',
   onStockIn,
   onStockOut,
   onEdit,
@@ -54,7 +52,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           .reverse()
           .sortBy('timestamp');
         setMutations(data);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error loading product mutations:', err);
       } finally {
         setLoading(false);
@@ -64,17 +62,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     loadMutations();
   }, [isOpen, product]);
 
-  // Pasokan Masuk (Batch Breakdown)
-  const inMutations = useMemo(() => {
-    return mutations.filter((m) => m.type === 'IN');
-  }, [mutations]);
+  const inMutations = useMemo(() => mutations.filter((m) => m.type === 'IN'), [mutations]);
+  const outMutations = useMemo(() => mutations.filter((m) => m.type === 'OUT'), [mutations]);
 
-  // Penjualan Keluar
-  const outMutations = useMemo(() => {
-    return mutations.filter((m) => m.type === 'OUT');
-  }, [mutations]);
-
-  // Container Stats
   const totalInQty = inMutations.reduce((sum, m) => sum + m.quantity, 0);
   const totalInValue = inMutations.reduce((sum, m) => sum + m.quantity * m.unit_cost, 0);
   const averageCostPrice = totalInQty > 0 ? Math.round(totalInValue / totalInQty) : (product?.cost_price || 0);
@@ -99,7 +89,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in">
       <div className="w-full max-w-lg bg-[#FAF8F5] border border-stone-200 rounded-t-3xl sm:rounded-2xl h-[92vh] max-h-[92vh] flex flex-col shadow-2xl animate-slide-up text-slate-900 pb-safe">
         
-        {/* Drawer Pull Handle for Mobile */}
+        {/* Pull Handle for Mobile */}
         <div className="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0">
           <div className="w-12 h-1.5 rounded-full bg-stone-300" />
         </div>
@@ -112,13 +102,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
             <div className="truncate">
               <h2 className="text-sm font-bold text-slate-900 truncate">{product.name}</h2>
-              <div className="flex items-center space-x-1.5 mt-0.5">
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 border border-stone-200">
-                  {categoryName}
-                </span>
-                <span className="text-[10px] text-stone-400">•</span>
-                <span className="text-[11px] text-stone-500 font-medium">Container Detail Produk</span>
-              </div>
+              <span className="text-[11px] text-stone-500 font-medium">Detail Riwayat Pasokan & Stok</span>
             </div>
           </div>
 
@@ -144,7 +128,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         {/* Modal Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
-          
           {/* Main Container Summary Card */}
           <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
@@ -160,7 +143,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Status Badge */}
               {critical ? (
                 <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-red-100 text-red-700 border border-red-200">
                   Kritis (≤ 3 unit)
@@ -221,10 +203,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   onClose();
                   onStockIn(product);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[40px]"
+                className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Tambah Pasokan</span>
+                <span>+ Stok Masuk</span>
               </button>
 
               <button
@@ -233,37 +215,33 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   onClose();
                   onStockOut(product);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[40px]"
+                className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
               >
                 <Minus className="w-4 h-4 stroke-[3]" />
-                <span>Catat Penjualan</span>
+                <span>- Stok Keluar</span>
               </button>
             </div>
           </div>
 
-          {/* Segmented Filter Tabs for Mutation History */}
+          {/* Segmented Filter Tabs */}
           <div className="space-y-2">
             <div className="flex bg-stone-100 p-1 rounded-xl border border-stone-200">
               <button
                 type="button"
                 onClick={() => setActiveTab('IN')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 min-h-[32px] ${
-                  activeTab === 'IN'
-                    ? 'bg-white text-orange-700 shadow-xs'
-                    : 'text-stone-600 hover:text-slate-900'
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 min-h-[36px] ${
+                  activeTab === 'IN' ? 'bg-white text-orange-700 shadow-xs' : 'text-stone-600'
                 }`}
               >
                 <Truck className="w-3.5 h-3.5" />
-                <span>Pasokan Masuk ({inMutations.length})</span>
+                <span>Pasokan ({inMutations.length})</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('OUT')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 min-h-[32px] ${
-                  activeTab === 'OUT'
-                    ? 'bg-white text-red-700 shadow-xs'
-                    : 'text-stone-600 hover:text-slate-900'
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 min-h-[36px] ${
+                  activeTab === 'OUT' ? 'bg-white text-red-700 shadow-xs' : 'text-stone-600'
                 }`}
               >
                 <ArrowUpRight className="w-3.5 h-3.5" />
@@ -273,10 +251,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('ALL')}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 min-h-[32px] ${
-                  activeTab === 'ALL'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-stone-600 hover:text-slate-900'
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 min-h-[36px] ${
+                  activeTab === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-stone-600'
                 }`}
               >
                 <History className="w-3.5 h-3.5" />
@@ -287,20 +263,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             {/* Tab Summary Banner */}
             {activeTab === 'IN' && (
               <div className="flex items-center justify-between px-1 text-[11px] text-stone-600">
-                <span>Total Pasokan Masuk: <b className="font-mono text-slate-900 font-bold">{formatNumber(totalInQty)} unit</b></span>
+                <span>Total Pasokan: <b className="font-mono text-slate-900 font-bold">{formatNumber(totalInQty)} unit</b></span>
                 <span>Total Modal: <b className="font-mono text-orange-700 font-bold">{formatCurrency(totalInValue)}</b></span>
               </div>
             )}
 
             {activeTab === 'OUT' && (
               <div className="flex items-center justify-between px-1 text-[11px] text-stone-600">
-                <span>Total Terjual: <b className="font-mono text-slate-900 font-bold">{formatNumber(totalOutQty)} unit</b> ({formatCurrency(totalOutValue)})</span>
+                <span>Terjual: <b className="font-mono text-slate-900 font-bold">{formatNumber(totalOutQty)} unit</b> ({formatCurrency(totalOutValue)})</span>
                 <span>Laba: <b className="font-mono text-emerald-700 font-bold">+{formatCurrency(totalProfit)}</b></span>
               </div>
             )}
           </div>
 
-          {/* Mutations Feed for This Container */}
+          {/* Mutations Feed */}
           <div className="space-y-2">
             {loading ? (
               <div className="p-6 text-center text-xs text-stone-500">Memuat riwayat...</div>
@@ -314,84 +290,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     ? 'Belum ada catatan penjualan'
                     : 'Belum ada riwayat mutasi'}
                 </p>
-                <p className="text-[11px] text-stone-400 mt-0.5">
-                  Gunakan tombol di atas untuk mencatat pasokan baru atau penjualan.
-                </p>
               </div>
             ) : (
-              displayedMutations.map((m) => {
-                const isIn = m.type === 'IN';
-                const subtotal = isIn ? m.quantity * m.unit_cost : m.quantity * m.unit_price;
-
-                return (
-                  <div
-                    key={m.id}
-                    className="p-3 rounded-2xl bg-white border border-stone-200/90 shadow-2xs space-y-2 text-slate-900"
-                  >
-                    {/* Top Row: Type Badge, Date, Qty */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                            isIn ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {isIn ? <ArrowDownRight className="w-3.5 h-3.5" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-stone-500 block font-medium">
-                            {formatDateTime(m.timestamp)}
-                          </span>
-                          <span className="text-xs font-bold text-slate-900">
-                            {isIn ? 'Pasokan Masuk' : 'Penjualan'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span
-                          className={`text-xs font-mono font-bold ${
-                            isIn ? 'text-orange-600' : 'text-red-600'
-                          }`}
-                        >
-                          {isIn ? '+' : '-'}{formatNumber(m.quantity)} unit
-                        </span>
-                        <span className="block text-[11px] font-mono text-stone-600 font-semibold">
-                          {formatCurrency(subtotal)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Middle Row: Rate & Profit */}
-                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-stone-100">
-                      <span className="text-stone-600">
-                        {isIn ? 'Harga Beli: ' : 'Harga Jual: '}
-                        <b className="font-mono text-slate-900 font-bold">
-                          {formatCurrency(isIn ? m.unit_cost : m.unit_price)}
-                        </b>
-                      </span>
-
-                      {!isIn && (
-                        <span className="text-stone-600">
-                          Laba: <b className="font-mono text-emerald-700 font-bold">+{formatCurrency(m.gross_profit)}</b>
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Bottom Row: Note / Vendor Info */}
-                    {m.notes && (
-                      <div className="pt-1 text-[11px] text-stone-600 bg-stone-50 px-2 py-1 rounded-lg border border-stone-100 flex items-start space-x-1">
-                        <span className="font-semibold text-stone-500 shrink-0">Catatan/Vendor:</span>
-                        <span className="italic text-slate-800">{m.notes}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              displayedMutations.map((m) => <DetailMutationCard key={m.id} mutation={m} />)
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

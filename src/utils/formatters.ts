@@ -75,10 +75,10 @@ export function formatDateTime(isoString: string): string {
   return `${formatDate(isoString)}, ${formatTime(isoString)}`;
 }
 
-export function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
-  let timeout: any;
+export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
+    if (timeout) clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
 }

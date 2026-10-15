@@ -1,24 +1,19 @@
-import React from 'react';
-import { useReports } from '../hooks/useReports';
+import React, { useState } from 'react';
 import { useLowStock } from '../hooks/useLowStock';
 import { useMutations } from '../hooks/useMutations';
 import { useProducts } from '../hooks/useProducts';
 import { LowStockBanner } from '../components/products/LowStockBanner';
-import { MetricCard } from '../components/reports/MetricCard';
 import { MutationListItem } from '../components/mutations/MutationListItem';
-import { formatCurrency, formatNumber } from '../utils/formatters';
 import type { Product } from '../db/schema';
 import { voidMutation } from '../db/operations';
 import { useToast } from '../components/common/Toast';
 import { 
-  TrendingUp, 
-  ShoppingBag, 
-  DollarSign, 
-  Boxes, 
   Plus, 
-  Minus,
-  Sparkles,
-  ArrowRight
+  Minus, 
+  ArrowRight, 
+  ShoppingBag, 
+  ArrowDownLeft, 
+  ArrowUpRight 
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -28,105 +23,69 @@ interface DashboardViewProps {
   onSelectProduct: (product: Product) => void;
 }
 
+type MutationFilterType = 'ALL' | 'IN' | 'OUT';
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenStockIn,
   onOpenStockOut,
   onNavigateToTab,
   onSelectProduct,
 }) => {
-  const { summary, refresh: refreshReports } = useReports('today');
+  const [filterType, setFilterType] = useState<MutationFilterType>('ALL');
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const { lowStockProducts, refresh: refreshLowStock } = useLowStock();
-  const { mutations, refresh: refreshMutations } = useMutations('ALL');
-  const { products, refresh: refreshProducts } = useProducts();
+  const { mutations, refresh: refreshMutations } = useMutations(filterType, todayStr);
+  const { refresh: refreshProducts } = useProducts();
   const { showToast } = useToast();
 
   const handleVoid = async (id: number) => {
     try {
       await voidMutation(id);
       showToast('Transaksi berhasil dibatalkan dan stok dikembalikan', 'info');
-      refreshReports();
       refreshLowStock();
       refreshMutations();
       refreshProducts();
-    } catch (err: any) {
-      showToast(err?.message || 'Gagal membatalkan transaksi', 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal membatalkan transaksi';
+      showToast(msg, 'error');
     }
   };
 
-  const recentMutations = mutations.slice(0, 4);
+  const formattedDate = new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   return (
     <div className="flex-1 pb-24 overflow-y-auto">
-      {/* Banner Ringkasan Hari Ini */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-3">
+      {/* Date Header */}
+      <div className="px-4 pt-4 pb-1">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-              <span>Ringkasan Hari Ini</span>
-              <Sparkles className="w-4 h-4 text-orange-500" />
+            <span className="text-[11px] font-bold text-orange-600 uppercase tracking-wider block">
+              Transaksi Hari Ini
+            </span>
+            <h2 className="text-sm font-extrabold text-slate-900 mt-0.5">
+              {formattedDate}
             </h2>
-            <p className="text-xs text-stone-500 font-medium">Pencatatan real-time di perangkat Anda</p>
           </div>
-          <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
-            {new Date().toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+          <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+            Kasir Aktif
           </span>
-        </div>
-
-        {/* 2x2 Metric Grid */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <MetricCard
-            label="Omzet Penjualan"
-            value={formatCurrency(summary.totalOutValue)}
-            subValue={`${formatNumber(summary.totalOutQty)} unit keluar`}
-            icon={<ShoppingBag className="w-4 h-4" />}
-            colorScheme="orange"
-          />
-          <MetricCard
-            label="Estimasi Laba Kotor"
-            value={formatCurrency(summary.totalGrossProfit)}
-            subValue={
-              summary.totalOutValue > 0
-                ? `${((summary.totalGrossProfit / summary.totalOutValue) * 100).toFixed(0)}% Margin`
-                : '0% Margin'
-            }
-            icon={<TrendingUp className="w-4 h-4" />}
-            colorScheme="emerald"
-          />
-          <MetricCard
-            label="Belanja Modal"
-            value={formatCurrency(summary.totalInValue)}
-            subValue={`${formatNumber(summary.totalInQty)} unit masuk`}
-            icon={<DollarSign className="w-4 h-4" />}
-            colorScheme="red"
-          />
-          <MetricCard
-            label="Total Katalog"
-            value={`${formatNumber(products.length)} Jenis`}
-            subValue="Barang aktif"
-            icon={<Boxes className="w-4 h-4" />}
-            colorScheme="slate"
-          />
         </div>
       </div>
 
-      {/* Low Stock Alert Banner (<= 9 unit) */}
-      <LowStockBanner
-        lowStockProducts={lowStockProducts}
-        onSelectProduct={(p) => {
-          onSelectProduct(p);
-          onOpenStockIn(p);
-        }}
-        onNavigateToCatalog={() => onNavigateToTab('catalog')}
-      />
-
-      {/* Quick Action Bar (Tombol Pintasan Transaksi) */}
-      <div className="px-4 mt-4">
+      {/* Quick Action Bar (Pencatatan Transaksi Cepat) */}
+      <div className="px-4 mt-3">
         <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 shadow-sm">
           <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wider block mb-2">
-            Pencatatan Transaksi Cepat
+            Pencatatan Transaksi
           </span>
           <div className="grid grid-cols-2 gap-2.5">
-            {/* Text Button Add GREEN */}
+            {/* Green Stock In */}
             <button
               onClick={() => onOpenStockIn()}
               className="flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition min-h-[46px]"
@@ -134,10 +93,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                 <Plus className="w-3.5 h-3.5 text-white stroke-[3]" />
               </div>
-              <span className="text-white font-bold">Masuk</span>
+              <span className="text-white font-bold">+ Pembelian (Masuk)</span>
             </button>
 
-            {/* Sub Red for Stock Out */}
+            {/* Red Stock Out */}
             <button
               onClick={() => onOpenStockOut()}
               className="flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 active:scale-[0.98] transition min-h-[46px]"
@@ -145,37 +104,88 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                 <Minus className="w-3.5 h-3.5 text-white stroke-[3]" />
               </div>
-              <span className="text-white font-bold">Keluar</span>
+              <span className="text-white font-bold">- Penjualan (Keluar)</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Recent Activity Section */}
-      <div className="px-4 mt-5">
-        <div className="flex items-center justify-between mb-3">
+      {/* Low Stock Alert Banner (<= 9 unit) */}
+      <div className="mt-3">
+        <LowStockBanner
+          lowStockProducts={lowStockProducts}
+          onSelectProduct={(p) => {
+            onSelectProduct(p);
+            onOpenStockIn(p);
+          }}
+          onNavigateToCatalog={() => onNavigateToTab('catalog')}
+        />
+      </div>
+
+      {/* Transacted Items Section */}
+      <div className="px-4 mt-3">
+        {/* Header & Filter Tabs */}
+        <div className="flex items-center justify-between mb-2.5">
           <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-            Mutasi Terakhir Hari Ini
+            Barang Ditransaksikan
           </h3>
           <button
             onClick={() => onNavigateToTab('history')}
             className="text-[11px] font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center space-x-1"
           >
-            <span>Lihat Semua</span>
+            <span>Semua Riwayat</span>
             <ArrowRight className="w-3 h-3" />
           </button>
         </div>
 
-        {recentMutations.length === 0 ? (
-          <div className="p-6 rounded-2xl bg-white border border-stone-200 text-center shadow-xs">
-            <p className="text-xs text-stone-600 font-medium">Belum ada transaksi mutasi hari ini.</p>
-            <p className="text-[11px] text-stone-400 mt-1">
-              Gunakan tombol "Masuk" atau "Keluar" di atas untuk mulai mencatat.
+        {/* Filter Tabs: Semua | Pembelian | Penjualan */}
+        <div className="flex bg-stone-100 p-1 rounded-xl mb-3">
+          <button
+            onClick={() => setFilterType('ALL')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition ${
+              filterType === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-stone-500'
+            }`}
+          >
+            Semua ({mutations.length})
+          </button>
+          <button
+            onClick={() => setFilterType('IN')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 ${
+              filterType === 'IN' ? 'bg-white text-emerald-700 shadow-xs' : 'text-stone-500'
+            }`}
+          >
+            <ArrowDownLeft className="w-3 h-3" />
+            <span>Pembelian</span>
+          </button>
+          <button
+            onClick={() => setFilterType('OUT')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 ${
+              filterType === 'OUT' ? 'bg-white text-red-700 shadow-xs' : 'text-stone-500'
+            }`}
+          >
+            <ArrowUpRight className="w-3 h-3" />
+            <span>Penjualan</span>
+          </button>
+        </div>
+
+        {/* List of Today's Transactions */}
+        {mutations.length === 0 ? (
+          <div className="p-8 rounded-3xl bg-white border border-stone-200 text-center shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-3">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <h4 className="text-sm font-bold text-slate-900">Belum ada barang ditransaksikan</h4>
+            <p className="text-xs text-stone-500 mt-1 max-w-[260px] mx-auto">
+              {filterType === 'IN'
+                ? 'Belum ada pembelian barang (stok masuk) hari ini.'
+                : filterType === 'OUT'
+                  ? 'Belum ada penjualan barang (stok keluar) hari ini.'
+                  : 'Gunakan tombol "+ Pembelian" atau "- Penjualan" di atas untuk mencatat barang.'}
             </p>
           </div>
         ) : (
           <div className="space-y-2.5">
-            {recentMutations.map((m) => (
+            {mutations.map((m) => (
               <MutationListItem key={m.id} mutation={m} onVoid={handleVoid} />
             ))}
           </div>

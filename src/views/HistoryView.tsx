@@ -34,8 +34,9 @@ export const HistoryView: React.FC = () => {
       await voidMutation(id);
       showToast('Transaksi berhasil dibatalkan dan stok dikembalikan', 'info');
       refresh();
-    } catch (err: any) {
-      showToast(err?.message || 'Gagal membatalkan transaksi', 'error');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal membatalkan transaksi';
+      showToast(msg, 'error');
     }
   };
 

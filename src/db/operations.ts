@@ -175,7 +175,6 @@ export async function voidMutation(mutationId: number): Promise<void> {
  */
 export async function createProduct(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
   if (!productData.name.trim()) throw new Error('Nama barang tidak boleh kosong');
-  if (!productData.category_id || productData.category_id <= 0) throw new Error('Kategori barang wajib dipilih');
   if (productData.cost_price < 0) throw new Error('Harga beli/modal tidak boleh negatif');
   if (productData.selling_price < 0) throw new Error('Harga jual tidak boleh negatif');
 
@@ -187,7 +186,7 @@ export async function createProduct(productData: Omit<Product, 'id' | 'created_a
     const id = await db.products.add({
       ...productData,
       name: productData.name.trim(),
-      category_id: productData.category_id,
+      category_id: productData.category_id || undefined,
       current_stock: initialStock,
       cost_price: Math.round(productData.cost_price),
       selling_price: Math.round(productData.selling_price),
@@ -221,7 +220,6 @@ export async function updateProduct(
   updates: Partial<Omit<Product, 'id' | 'created_at'>>
 ): Promise<void> {
   if (updates.name && !updates.name.trim()) throw new Error('Nama barang tidak boleh kosong');
-  if (updates.category_id !== undefined && updates.category_id <= 0) throw new Error('Kategori barang wajib dipilih');
   if (updates.cost_price !== undefined && updates.cost_price < 0) throw new Error('Harga modal tidak boleh negatif');
   if (updates.selling_price !== undefined && updates.selling_price < 0) throw new Error('Harga jual tidak boleh negatif');
 
@@ -249,45 +247,10 @@ export async function deleteProduct(id: number): Promise<void> {
   });
 }
 
-/**
- * CRUD Kategori dengan validasi relasi (PRD F-01)
- */
-export async function createCategory(name: string): Promise<number> {
-  const trimmed = name.trim();
-  if (!trimmed) throw new Error('Nama kategori tidak boleh kosong');
-  
-  const existing = await db.categories.where('name').equalsIgnoreCase(trimmed).first();
-  if (existing) throw new Error('Kategori dengan nama tersebut sudah ada');
-
-  return await db.categories.add({
-    name: trimmed,
-    created_at: new Date().toISOString()
-  });
-}
-
-export async function updateCategory(id: number, name: string): Promise<void> {
-  const trimmed = name.trim();
-  if (!trimmed) throw new Error('Nama kategori tidak boleh kosong');
-
-  const existing = await db.categories.where('name').equalsIgnoreCase(trimmed).first();
-  if (existing && existing.id !== id) throw new Error('Kategori dengan nama tersebut sudah ada');
-
-  await db.categories.update(id, { name: trimmed });
-}
-
-export async function deleteCategory(id: number): Promise<void> {
-  const associatedCount = await db.products.where('category_id').equals(id).count();
-  if (associatedCount > 0) {
-    throw new Error(`Kategori tidak dapat dihapus karena masih digunakan oleh ${associatedCount} barang aktif.`);
-  }
-
-  const totalCategories = await db.categories.count();
-  if (totalCategories <= 1) {
-    throw new Error('Sistem harus memiliki minimal 1 kategori.');
-  }
-
-  await db.categories.delete(id);
-}
+// Re-export category operations
+export { createCategory, updateCategory, deleteCategory } from './categoryOperations';
+// Re-export debt operations
+export { createDebt, updateDebt, recordDebtPayment, deleteDebt, type CreateDebtParams } from './debtOperations';
 
 /**
  * Gabungkan beberapa produk yang memiliki nama sama ke 1 master produk

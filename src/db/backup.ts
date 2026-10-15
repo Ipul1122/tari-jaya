@@ -1,5 +1,5 @@
 import { db } from './schema';
-import type { Category, Product, StockMutation, AppSetting } from './schema';
+import type { Category, Product, StockMutation, AppSetting, DebtRecord } from './schema';
 
 export interface BackupPayload {
   version: number;
@@ -10,6 +10,7 @@ export interface BackupPayload {
     products: Product[];
     stock_mutations: StockMutation[];
     settings?: AppSetting[];
+    debts?: DebtRecord[];
   };
 }
 
@@ -21,17 +22,19 @@ export async function exportDatabaseToJson(): Promise<string> {
   const products = await db.products.toArray();
   const stock_mutations = await db.stock_mutations.toArray();
   const settings = await db.settings.toArray();
+  const debts = await db.debts.toArray();
 
   const payload: BackupPayload = {
-    version: 1,
+    version: 2,
     app: 'StandaloneStockLedger',
     exported_at: new Date().toISOString(),
     data: {
       categories,
       products,
       stock_mutations,
-      settings
-    }
+      settings,
+      debts,
+    },
   };
 
   const jsonString = JSON.stringify(payload, null, 2);
@@ -95,6 +98,7 @@ export async function restoreDatabaseFromJson(jsonContent: string): Promise<{
   categoriesCount: number;
   productsCount: number;
   mutationsCount: number;
+  debtsCount: number;
 }> {
   let parsed: unknown;
   try {
@@ -110,12 +114,13 @@ export async function restoreDatabaseFromJson(jsonContent: string): Promise<{
   const backup = parsed as BackupPayload;
 
   // Eksekusi pemulihan data secara atomik
-  await db.transaction('rw', [db.categories, db.products, db.stock_mutations, db.settings], async () => {
+  await db.transaction('rw', [db.categories, db.products, db.stock_mutations, db.settings, db.debts], async () => {
     // 1. Bersihkan data lama
     await db.categories.clear();
     await db.products.clear();
     await db.stock_mutations.clear();
     await db.settings.clear();
+    await db.debts.clear();
 
     // 2. Masukkan data cadangan
     if (backup.data.categories.length > 0) {
@@ -130,11 +135,15 @@ export async function restoreDatabaseFromJson(jsonContent: string): Promise<{
     if (backup.data.settings && backup.data.settings.length > 0) {
       await db.settings.bulkAdd(backup.data.settings);
     }
+    if (backup.data.debts && backup.data.debts.length > 0) {
+      await db.debts.bulkAdd(backup.data.debts);
+    }
   });
 
   return {
     categoriesCount: backup.data.categories.length,
     productsCount: backup.data.products.length,
     mutationsCount: backup.data.stock_mutations.length,
+    debtsCount: backup.data.debts?.length || 0,
   };
 }

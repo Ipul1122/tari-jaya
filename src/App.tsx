@@ -5,6 +5,7 @@ import type { NavTab } from './components/layout/BottomNav';
 import { DashboardView } from './views/DashboardView';
 import { CatalogView } from './views/CatalogView';
 import { HistoryView } from './views/HistoryView';
+import { DebtsView } from './views/DebtsView';
 import { ReportsView } from './views/ReportsView';
 import { QuickInOutDrawer } from './components/mutations/QuickInOutDrawer';
 import { ToastProvider } from './components/common/Toast';
@@ -12,6 +13,7 @@ import { seedInitialDataIfNeeded } from './db/schema';
 import type { Product } from './db/schema';
 import { useProducts } from './hooks/useProducts';
 import { useLowStock } from './hooks/useLowStock';
+import { useDebts } from './hooks/useDebts';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
@@ -21,12 +23,14 @@ function MainApp() {
 
   const { products, refresh: refreshProducts } = useProducts();
   const { count: lowStockCount, refresh: refreshLowStock } = useLowStock();
+  const { summary: debtSummary, refresh: refreshDebts } = useDebts();
 
   // Initialize offline seed data on first launch
   useEffect(() => {
     seedInitialDataIfNeeded().then(() => {
       refreshProducts();
       refreshLowStock();
+      refreshDebts();
     });
   }, []);
 
@@ -34,6 +38,7 @@ function MainApp() {
   useEffect(() => {
     refreshProducts();
     refreshLowStock();
+    refreshDebts();
   }, [activeTab]);
 
   const handleOpenStockIn = (product?: Product) => {
@@ -58,12 +63,16 @@ function MainApp() {
   const handleDataRestored = () => {
     refreshProducts();
     refreshLowStock();
+    refreshDebts();
   };
 
+  const activeDebtTotalCount = debtSummary.activeReceivableCount + debtSummary.activePayableCount;
+
   const titles: Record<NavTab, { title: string; subtitle: string }> = {
-    dashboard: { title: 'Tari Jaya', subtitle: 'Dasbor Ringkasan Toko' },
+    dashboard: { title: 'Tari Jaya', subtitle: 'Dasbor Transaksi Toko' },
     catalog: { title: 'Katalog Barang', subtitle: `${products.length} Jenis Produk Terdaftar` },
     history: { title: 'Riwayat Mutasi', subtitle: 'Audit Log Keluar & Masuk' },
+    debts: { title: 'Buku Hutang', subtitle: `${activeDebtTotalCount} Catatan Aktif Belum Lunas` },
     reports: { title: 'Laporan Finansial', subtitle: 'Kalkulasi Margin & Cadangan' },
   };
 
@@ -101,6 +110,8 @@ function MainApp() {
 
           {activeTab === 'history' && <HistoryView />}
 
+          {activeTab === 'debts' && <DebtsView />}
+
           {activeTab === 'reports' && (
             <ReportsView onDataRestored={handleDataRestored} />
           )}
@@ -121,6 +132,7 @@ function MainApp() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           lowStockCount={lowStockCount}
+          activeDebtCount={activeDebtTotalCount}
         />
       </div>
     </div>

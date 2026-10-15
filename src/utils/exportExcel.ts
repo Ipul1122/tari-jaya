@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { db } from '../db/schema';
-import type { StockMutation, Product, Category } from '../db/schema';
+import type { StockMutation, Product, Category, DebtRecord } from '../db/schema';
 import { formatDate, formatDateTime } from './formatters';
 
 interface ExportDataParams {
@@ -13,9 +13,10 @@ interface ExportDataParams {
 export async function exportReportsToExcel(params: ExportDataParams): Promise<string> {
   const { periodLabel, startDate, endDate, mutations } = params;
 
-  // 1. Ambil data produk & kategori terkini dari database
+  // 1. Ambil data produk, kategori & hutang piutang terkini dari database
   const allProducts: Product[] = await db.products.toArray();
   const allCategories: Category[] = await db.categories.toArray();
+  const allDebts: DebtRecord[] = await db.debts.toArray();
 
   const categoryMap = new Map<number, string>();
   allCategories.forEach((c) => {
@@ -66,6 +67,7 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
     { 'Parameter Laporan': 'Total Kuantitas Barang Masuk', 'Nilai': totalInQty },
     { 'Parameter Laporan': 'Total Frekuensi Transaksi', 'Nilai': mutations.length },
     { 'Parameter Laporan': 'Total Jenis Produk di Katalog', 'Nilai': allProducts.length },
+    { 'Parameter Laporan': 'Total Catatan Hutang Piutang', 'Nilai': allDebts.length },
   ];
 
   const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
@@ -76,7 +78,6 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   // ----------------------------------------------------
   const mutationRows = mutations.map((m, index) => {
     const prod = productMap.get(m.product_id);
-    const catName = prod ? (categoryMap.get(prod.category_id) || 'Umum') : 'Umum';
     const subtotal = m.type === 'IN' ? m.quantity * m.unit_cost : m.quantity * m.unit_price;
 
     return {
@@ -84,7 +85,6 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
       'Waktu Transaksi': formatDateTime(m.timestamp),
       'Tipe Mutasi': m.type === 'IN' ? 'MASUK' : 'KELUAR',
       'Nama Barang': prod?.name || `Produk #${m.product_id}`,
-      'Kategori': catName,
       'Jumlah (Qty)': m.quantity,
       'Harga Satuan (Rp)': m.type === 'IN' ? m.unit_cost : m.unit_price,
       'Total Nilai (Rp)': subtotal,
@@ -99,7 +99,6 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
     { wch: 22 },
     { wch: 14 },
     { wch: 28 },
-    { wch: 18 },
     { wch: 14 },
     { wch: 18 },
     { wch: 18 },
@@ -111,7 +110,6 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   // Sheet 3: KATALOG & SISA STOK TOKO
   // ----------------------------------------------------
   const catalogRows = allProducts.map((p, index) => {
-    const catName = categoryMap.get(p.category_id) || 'Umum';
     const unitMargin = p.selling_price - p.cost_price;
     const totalAssetValue = p.current_stock * p.cost_price;
 
@@ -123,13 +121,13 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
     return {
       'No': index + 1,
       'Nama Barang': p.name,
-      'Kategori': catName,
       'Sisa Stok': p.current_stock,
       'Status Stok': stockStatus,
       'Harga Modal (Rp)': p.cost_price,
       'Harga Jual (Rp)': p.selling_price,
       'Margin per Unit (Rp)': unitMargin,
       'Total Nilai Modal Stok (Rp)': totalAssetValue,
+      'Catatan / Vendor': p.notes || '-',
       'Terakhir Diperbarui': formatDateTime(p.updated_at),
     };
   });
@@ -138,13 +136,50 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   catalogSheet['!cols'] = [
     { wch: 6 },
     { wch: 30 },
-    { wch: 18 },
     { wch: 12 },
     { wch: 14 },
     { wch: 18 },
     { wch: 18 },
     { wch: 20 },
     { wch: 26 },
+    { wch: 24 },
+    { wch: 22 },
+  ];
+
+  // ----------------------------------------------------
+  // Sheet 4: BUKU HUTANG PIUTANG
+  // ----------------------------------------------------
+  const debtRows = allDebts.map((d, index) => {
+    const remaining = Math.max(0, d.total_amount - d.paid_amount);
+    const statusText = d.status === 'PAID' ? 'LUNAS' : d.status === 'PARTIAL' ? 'DICICIL' : 'BELUM BAYAR';
+
+    return {
+      'No': index + 1,
+      'Jenis': d.type === 'PIUTANG' ? 'PIUTANG (KASBON PELANGGAN)' : 'HUTANG SUPPLIER',
+      'Nama Kontak': d.person_name,
+      'No. Telepon / WA': d.phone || '-',
+      'Total Tagihan (Rp)': d.total_amount,
+      'Sudah Dibayar (Rp)': d.paid_amount,
+      'Sisa Tagihan (Rp)': remaining,
+      'Status': statusText,
+      'Jatuh Tempo': d.due_date ? formatDate(d.due_date) : '-',
+      'Catatan Rincian': d.notes || '-',
+      'Tanggal Dicatat': formatDateTime(d.created_at),
+    };
+  });
+
+  const debtSheet = XLSX.utils.json_to_sheet(debtRows);
+  debtSheet['!cols'] = [
+    { wch: 6 },
+    { wch: 28 },
+    { wch: 22 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 16 },
+    { wch: 28 },
     { wch: 22 },
   ];
 
@@ -153,6 +188,7 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan Laporan');
   XLSX.utils.book_append_sheet(workbook, mutationSheet, 'Riwayat Transaksi');
   XLSX.utils.book_append_sheet(workbook, catalogSheet, 'Katalog & Sisa Stok');
+  XLSX.utils.book_append_sheet(workbook, debtSheet, 'Buku Hutang Piutang');
 
   // 4. Download File XLSX
   const dateStr = new Date().toISOString().slice(0, 10);

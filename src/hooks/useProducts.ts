@@ -25,7 +25,11 @@ export function useProducts(selectedCategoryId?: number | null, searchQuery: str
 
       if (searchQuery.trim()) {
         const query = searchQuery.trim().toLowerCase();
-        filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+        filtered = filtered.filter(
+          (p) =>
+            p.name.toLowerCase().includes(query) ||
+            (p.notes && p.notes.toLowerCase().includes(query))
+        );
       }
 
       // Default sort by updated_at desc

@@ -8,7 +8,7 @@ export interface Category {
 
 export interface Product {
   id?: number;
-  category_id: number;
+  category_id?: number;
   name: string;
   current_stock: number;
   cost_price: number;     // Harga modal/beli per unit (Integer IDR)
@@ -16,6 +16,23 @@ export interface Product {
   notes?: string;         // Catatan/keterangan barang (opsional)
   created_at: string;
   updated_at: string;
+}
+
+export type DebtType = 'PIUTANG' | 'HUTANG';
+export type DebtStatus = 'UNPAID' | 'PARTIAL' | 'PAID';
+
+export interface DebtRecord {
+  id?: number;
+  type: DebtType;             // PIUTANG: Kasbon pembeli, HUTANG: Utang toko ke supplier
+  person_name: string;        // Nama Pelanggan / Supplier (Wajib)
+  phone?: string;             // No WhatsApp/Telepon untuk kirim tagihan (Opsional)
+  total_amount: number;       // Total nilai hutang/piutang (Integer IDR)
+  paid_amount: number;        // Jumlah yang sudah dibayar/dicicil (Integer IDR)
+  due_date?: string;          // Tanggal jatuh tempo (Opsional, format YYYY-MM-DD)
+  status: DebtStatus;         // UNPAID | PARTIAL | PAID
+  notes?: string;             // Catatan barang / rincian (opsional)
+  created_at: string;         // ISO String
+  updated_at: string;         // ISO String
 }
 
 export interface StockMutation {
@@ -40,6 +57,7 @@ export class InventoryDatabase extends Dexie {
   products!: Table<Product, number>;
   stock_mutations!: Table<StockMutation, number>;
   settings!: Table<AppSetting, string>;
+  debts!: Table<DebtRecord, number>;
 
   constructor() {
     super('OfflineStoreInventoryDB');
@@ -48,6 +66,9 @@ export class InventoryDatabase extends Dexie {
       products: '++id, category_id, name, current_stock',
       stock_mutations: '++id, product_id, type, timestamp, [type+timestamp]',
       settings: 'key'
+    });
+    this.version(2).stores({
+      debts: '++id, type, person_name, status, due_date, created_at, updated_at'
     });
   }
 }
@@ -121,10 +142,11 @@ export async function seedInitialDataIfNeeded() {
  * Bersihkan seluruh data (Reset penuh ke kondisi awal bersih)
  */
 export async function clearAllDatabaseData(): Promise<void> {
-  await db.transaction('rw', [db.categories, db.products, db.stock_mutations], async () => {
+  await db.transaction('rw', [db.categories, db.products, db.stock_mutations, db.debts], async () => {
     await db.products.clear();
     await db.stock_mutations.clear();
     await db.categories.clear();
+    await db.debts.clear();
     // Buat kembali 1 kategori default "Umum"
     await db.categories.add({
       name: 'Umum',

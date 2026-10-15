@@ -6,7 +6,6 @@ import { PopoverConfirm } from '../common/PopoverConfirm';
 
 interface ProductCardProps {
   product: Product;
-  categoryName?: string;
   onStockIn: (product: Product) => void;
   onStockOut: (product: Product) => void;
   onEdit: (product: Product) => void;
@@ -16,7 +15,6 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  categoryName = 'Umum',
   onStockIn,
   onStockOut,
   onEdit,
@@ -52,10 +50,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <Boxes className="w-3.5 h-3.5 text-stone-400 group-hover:text-orange-500 transition shrink-0 opacity-0 group-hover:opacity-100" />
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-stone-100 text-stone-700 border border-stone-200 truncate max-w-[120px]">
-              {categoryName}
-            </span>
-
             {/* Low stock badge */}
             {critical ? (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
