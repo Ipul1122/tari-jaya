@@ -106,11 +106,14 @@ export async function seedInitialDataIfNeeded() {
       });
     }
 
-    // Bersihkan mutasi demo jika ada
-    await db.stock_mutations.where('notes').equals('Stok awal kulakan').delete();
-    await db.stock_mutations.where('notes').equals('Penjualan ke Ibu Ani').delete();
-    await db.stock_mutations.where('notes').equals('Kulakan grosir').delete();
-    await db.stock_mutations.where('notes').equals('Laku di warung').delete();
+    // Bersihkan mutasi demo jika ada (notes bukan indexed keypath, gunakan filter)
+    const demoNotes = ['Stok awal kulakan', 'Penjualan ke Ibu Ani', 'Kulakan grosir', 'Laku di warung'];
+    const demoMutationIds = await db.stock_mutations
+      .filter((m) => !!m.notes && demoNotes.includes(m.notes))
+      .primaryKeys();
+    if (demoMutationIds.length > 0) {
+      await db.stock_mutations.bulkDelete(demoMutationIds);
+    }
 
     // Hapus kategori dummy jika tidak memiliki produk
     const sembako = await db.categories.where('name').equals('Sembako').first();
