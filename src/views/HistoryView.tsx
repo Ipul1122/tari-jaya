@@ -13,7 +13,17 @@ import {
   X
 } from 'lucide-react';
 
-export const HistoryView: React.FC = () => {
+interface HistoryViewProps {
+  unreadMutationIds?: Set<number>;
+  onMarkMutationAsRead?: (id: number) => void;
+  onMarkAllAsRead?: () => void;
+}
+
+export const HistoryView: React.FC<HistoryViewProps> = ({
+  unreadMutationIds,
+  onMarkMutationAsRead,
+  onMarkAllAsRead,
+}) => {
   const { showToast } = useToast();
   const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
   const [filterDate, setFilterDate] = useState<string>('');
@@ -152,6 +162,24 @@ export const HistoryView: React.FC = () => {
 
       {/* Mutations Feed */}
       <div className="px-4 mt-3 space-y-2.5">
+        {unreadMutationIds && unreadMutationIds.size > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-2.5 flex items-center justify-between text-xs animate-fade-in shadow-2xs">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-orange-600 animate-ping" />
+              <span className="font-bold text-orange-950 text-xs">
+                {unreadMutationIds.size} transaksi baru saja dilakukan
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onMarkAllAsRead}
+              className="px-2.5 py-1 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-[10px] shadow-xs active:scale-95 transition"
+            >
+              Tandai Terbaca (Read All)
+            </button>
+          </div>
+        )}
+
         {mutations.length === 0 ? (
           <div className="p-8 rounded-2xl bg-white border border-stone-200 text-center my-6 shadow-xs">
             <Layers className="w-10 h-10 text-stone-400 mx-auto mb-2" />
@@ -164,7 +192,13 @@ export const HistoryView: React.FC = () => {
           </div>
         ) : (
           paginatedMutations.map((m) => (
-            <MutationListItem key={m.id} mutation={m} onVoid={handleVoid} />
+            <MutationListItem 
+              key={m.id} 
+              mutation={m} 
+              onVoid={handleVoid}
+              isUnread={unreadMutationIds?.has(m.id!)}
+              onMarkAsRead={onMarkMutationAsRead}
+            />
           ))
         )}
 

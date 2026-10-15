@@ -7,9 +7,16 @@ import { PopoverConfirm } from '../common/PopoverConfirm';
 interface MutationListItemProps {
   mutation: MutationWithProduct;
   onVoid: (mutationId: number) => Promise<void>;
+  isUnread?: boolean;
+  onMarkAsRead?: (mutationId: number) => void;
 }
 
-export const MutationListItem: React.FC<MutationListItemProps> = ({ mutation, onVoid }) => {
+export const MutationListItem: React.FC<MutationListItemProps> = ({ 
+  mutation, 
+  onVoid,
+  isUnread = false,
+  onMarkAsRead,
+}) => {
   const [showConfirmVoid, setShowConfirmVoid] = useState<boolean>(false);
 
   const isIn = mutation.type === 'IN';
@@ -27,7 +34,14 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({ mutation, on
     : `Stok "${mutation.product_name}" akan ditambah ${mutation.quantity} unit kembali ke nilai sebelum transaksi keluar ini.`;
 
   return (
-    <div className="relative bg-white border border-stone-200/90 rounded-2xl p-3.5 shadow-sm space-y-2.5 text-slate-900">
+    <div 
+      onClick={() => isUnread && onMarkAsRead?.(mutation.id!)}
+      className={`relative rounded-2xl p-3.5 shadow-sm space-y-2.5 text-slate-900 transition-colors ${
+        isUnread 
+          ? 'bg-orange-50/40 border-2 border-orange-400 cursor-pointer' 
+          : 'bg-white border border-stone-200/90'
+      }`}
+    >
       {/* Top row: Type badge, product name, quantity */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center space-x-2.5 min-w-0">
@@ -41,7 +55,14 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({ mutation, on
             {isIn ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
           </div>
           <div className="truncate">
-            <h4 className="text-xs font-bold text-slate-900 truncate">{mutation.product_name}</h4>
+            <div className="flex items-center space-x-1.5 truncate">
+              <h4 className="text-xs font-bold text-slate-900 truncate">{mutation.product_name}</h4>
+              {isUnread && (
+                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-orange-600 text-white animate-pulse shrink-0">
+                  Baru Saja
+                </span>
+              )}
+            </div>
             <span className="text-[10px] text-stone-500 block font-medium">
               {formatDateTime(mutation.timestamp)}
             </span>

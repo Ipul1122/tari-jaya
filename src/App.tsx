@@ -9,35 +9,32 @@ import { DebtsView } from './views/DebtsView';
 import { ReportsView } from './views/ReportsView';
 import { QuickInOutDrawer } from './components/mutations/QuickInOutDrawer';
 import { ToastProvider } from './components/common/Toast';
-import { db, seedInitialDataIfNeeded } from './db/schema';
+import { seedInitialDataIfNeeded } from './db/schema';
 import type { Product } from './db/schema';
 import { useProducts } from './hooks/useProducts';
 import { useLowStock } from './hooks/useLowStock';
 import { useDebts } from './hooks/useDebts';
-import { useCallback } from 'react';
+import { useAppNotifications } from './hooks/useAppNotifications';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [drawerType, setDrawerType] = useState<'IN' | 'OUT'>('IN');
   const [drawerSelectedProduct, setDrawerSelectedProduct] = useState<Product | null>(null);
-  const [todayMutationCount, setTodayMutationCount] = useState<number>(0);
 
   const { products, refresh: refreshProducts } = useProducts();
   const { count: lowStockCount, refresh: refreshLowStock } = useLowStock();
   const { summary: debtSummary, refresh: refreshDebts } = useDebts();
-
-  const refreshMutationCount = useCallback(async () => {
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      const count = await db.stock_mutations
-        .filter((m) => m.timestamp.startsWith(today))
-        .count();
-      setTodayMutationCount(count);
-    } catch {
-      setTodayMutationCount(0);
-    }
-  }, []);
+  const {
+    historyUnreadCount,
+    debtsUnreadCount,
+    lowStockUnreadCount,
+    unreadMutationIds,
+    markMutationAsRead,
+    markAllMutationsAsRead,
+    markTabAsRead,
+    refreshNotifications,
+  } = useAppNotifications(lowStockCount);
 
   // Initialize offline seed data on first launch
   useEffect(() => {
@@ -45,17 +42,22 @@ function MainApp() {
       refreshProducts();
       refreshLowStock();
       refreshDebts();
-      refreshMutationCount();
+      refreshNotifications();
     });
-  }, [refreshMutationCount]);
+  }, [refreshNotifications]);
 
   // Refresh data whenever activeTab changes so changes across views are immediately reflected
   useEffect(() => {
     refreshProducts();
     refreshLowStock();
     refreshDebts();
-    refreshMutationCount();
-  }, [activeTab, refreshMutationCount]);
+    refreshNotifications();
+  }, [activeTab, refreshNotifications]);
+
+  const handleTabChange = (tab: NavTab) => {
+    setActiveTab(tab);
+    markTabAsRead(tab);
+  };
 
   const handleOpenStockIn = (product?: Product) => {
     refreshProducts();
@@ -75,14 +77,14 @@ function MainApp() {
     refreshProducts();
     refreshLowStock();
     refreshDebts();
-    refreshMutationCount();
+    refreshNotifications();
   };
 
   const handleDataRestored = () => {
     refreshProducts();
     refreshLowStock();
     refreshDebts();
-    refreshMutationCount();
+    refreshNotifications();
   };
 
   const activeDebtTotalCount = debtSummary.activeReceivableCount + debtSummary.activePayableCount;
@@ -111,7 +113,7 @@ function MainApp() {
             <DashboardView
               onOpenStockIn={handleOpenStockIn}
               onOpenStockOut={handleOpenStockOut}
-              onNavigateToTab={(tab) => setActiveTab(tab)}
+              onNavigateToTab={(tab) => handleTabChange(tab)}
               onSelectProduct={(p) => setDrawerSelectedProduct(p)}
             />
           )}
@@ -127,7 +129,13 @@ function MainApp() {
             />
           )}
 
-          {activeTab === 'history' && <HistoryView />}
+          {activeTab === 'history' && (
+            <HistoryView
+              unreadMutationIds={unreadMutationIds}
+              onMarkMutationAsRead={markMutationAsRead}
+              onMarkAllAsRead={markAllMutationsAsRead}
+            />
+          )}
 
           {activeTab === 'debts' && <DebtsView />}
 
@@ -144,16 +152,19 @@ function MainApp() {
           selectedProduct={drawerSelectedProduct}
           products={products}
           onSuccess={handleMutationSuccess}
-          onNavigateToHistory={() => setActiveTab('history')}
+          onNavigateToHistory={() => {
+            setActiveTab('history');
+            refreshNotifications();
+          }}
         />
 
         {/* Fixed Mobile Bottom Navigation */}
         <BottomNav
           activeTab={activeTab}
-          onTabChange={setActiveTab}
-          lowStockCount={lowStockCount}
-          activeDebtCount={activeDebtTotalCount}
-          historyCount={todayMutationCount}
+          onTabChange={handleTabChange}
+          lowStockCount={lowStockUnreadCount}
+          activeDebtCount={debtsUnreadCount}
+          historyCount={historyUnreadCount}
         />
       </div>
     </div>
