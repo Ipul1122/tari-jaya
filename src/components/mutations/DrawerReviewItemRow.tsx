@@ -120,15 +120,19 @@ export const DrawerReviewItemRow: React.FC<DrawerReviewItemRowProps> = ({
         </div>
       </div>
 
-      {/* Row 3: Notes & Subtotal */}
-      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-stone-100">
-        <input
-          type="text"
-          value={item.notes || ''}
-          onChange={(e) => onUpdateNotes(index, e.target.value)}
-          placeholder="Catatan transaksi (opsional)..."
-          className="flex-1 mr-2 px-2 py-1 bg-stone-50 border border-stone-200 rounded-lg text-slate-800 text-[10px] focus:outline-none focus:border-orange-500"
-        />
+      {/* Row 3: Notes (only for Stock Out) & Subtotal */}
+      <div className={`flex items-center text-[11px] pt-1 border-t border-stone-100 ${
+        isStockIn ? 'justify-end' : 'justify-between'
+      }`}>
+        {!isStockIn && (
+          <input
+            type="text"
+            value={item.notes || ''}
+            onChange={(e) => onUpdateNotes(index, e.target.value)}
+            placeholder="Catatan transaksi (opsional)..."
+            className="flex-1 mr-2 px-2 py-1 bg-stone-50 border border-stone-200 rounded-lg text-slate-800 text-[10px] focus:outline-none focus:border-orange-500"
+          />
+        )}
         <div className="text-right shrink-0">
           <span className="text-stone-500 text-[10px]">Subtotal: </span>
           <b className="font-mono text-slate-900 font-bold">{formatCurrency(subtotal)}</b>

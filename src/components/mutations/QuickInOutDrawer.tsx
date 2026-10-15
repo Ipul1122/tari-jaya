@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Product } from '../../db/schema';
-import { recordBulkStockIn, recordBulkStockOut } from '../../db/operations';
+import { recordBulkStockIn } from '../../db/operations';
 import { DrawerSelectTab } from './DrawerSelectTab';
 import { DrawerReviewTab } from './DrawerReviewTab';
 import { DrawerBottomBar } from './DrawerBottomBar';
+import { PaymentCheckoutModal } from './PaymentCheckoutModal';
 import { useDrawerCart } from './useDrawerCart';
 import { 
   X, 
@@ -30,6 +31,7 @@ interface QuickInOutDrawerProps {
   selectedProduct?: Product | null;
   products: Product[];
   onSuccess: () => void;
+  onNavigateToHistory?: () => void;
 }
 
 export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
@@ -39,12 +41,14 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
   selectedProduct,
   products,
   onSuccess,
+  onNavigateToHistory,
 }) => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'select' | 'review'>('select');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [allowNegative, setAllowNegative] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const isStockIn = type === 'IN';
@@ -128,31 +132,23 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
       }
     }
 
+    if (!isStockIn) {
+      // Penjualan: Buka modal pembayaran untuk memilih/membuat nama pelanggan
+      setIsPaymentModalOpen(true);
+      return;
+    }
+
+    // Barang Masuk: Langsung simpan tanpa catatan
     setIsSubmitting(true);
     try {
-      if (isStockIn) {
-        await recordBulkStockIn(
-          validItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitCost: item.unitPrice,
-            notes: item.notes,
-          }))
-        );
-        showToast(`Berhasil mencatat stok masuk untuk ${validItems.length} jenis barang`, 'success');
-      } else {
-        await recordBulkStockOut(
-          validItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            notes: item.notes,
-            allowNegativeStock: allowNegative,
-          })),
-          allowNegative
-        );
-        showToast(`Berhasil mencatat penjualan untuk ${validItems.length} jenis barang`, 'success');
-      }
+      await recordBulkStockIn(
+        validItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitCost: item.unitPrice,
+        }))
+      );
+      showToast(`Berhasil mencatat stok masuk untuk ${validItems.length} jenis barang`, 'success');
       onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -160,6 +156,20 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
       setError(msg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePaymentSuccess = (customerName: string, isKasbon: boolean) => {
+    setIsPaymentModalOpen(false);
+    onSuccess();
+    onClose();
+    if (isKasbon) {
+      showToast(`Penjualan kasbon untuk ${customerName} dicatat ke Hutang & Riwayat`, 'success');
+    } else {
+      showToast(`Pembayaran dari ${customerName} lunas & masuk ke Riwayat`, 'success');
+    }
+    if (onNavigateToHistory) {
+      onNavigateToHistory();
     }
   };
 
@@ -279,6 +289,17 @@ export const QuickInOutDrawer: React.FC<QuickInOutDrawerProps> = ({
           onProceedToReview={() => setActiveTab('review')}
           onClose={onClose}
           onSubmit={handleSubmit}
+        />
+
+        {/* Modal Konfirmasi Pembayaran & Input Pelanggan */}
+        <PaymentCheckoutModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          items={items.filter((i) => i.quantity > 0)}
+          totalValue={totalValue}
+          totalUnits={totalUnits}
+          allowNegative={allowNegative}
+          onSuccess={handlePaymentSuccess}
         />
       </div>
     </div>

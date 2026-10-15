@@ -8,6 +8,7 @@ interface BottomNavProps {
   onTabChange: (tab: NavTab) => void;
   lowStockCount?: number;
   activeDebtCount?: number;
+  historyCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -15,6 +16,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onTabChange,
   lowStockCount = 0,
   activeDebtCount = 0,
+  historyCount = 0,
 }) => {
   const tabs = [
     {
@@ -34,11 +36,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       label: 'Barang',
       icon: Boxes,
       isPrimary: true,
+      badge: lowStockCount > 0 ? lowStockCount : undefined,
     },
     {
       id: 'history' as NavTab,
       label: 'Riwayat',
       icon: ArrowLeftRight,
+      badge: historyCount > 0 ? historyCount : undefined,
     },
     {
       id: 'reports' as NavTab,
@@ -63,13 +67,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({
                 aria-label={tab.label}
               >
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 border-4 border-white ${
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 border-4 border-white relative ${
                     isActive
                       ? 'bg-gradient-to-tr from-orange-600 to-amber-500 text-white shadow-orange-500/40 ring-2 ring-orange-400 scale-105'
                       : 'bg-orange-500 text-white shadow-orange-500/25 hover:bg-orange-600'
                   }`}
                 >
                   <Icon className="w-5 h-5 text-white" />
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold px-1 min-w-[16px] h-[16px] rounded-full flex items-center justify-center ring-2 ring-white animate-pulse">
+                      {tab.badge > 99 ? '99+' : tab.badge}
+                    </span>
+                  )}
                 </div>
                 <span
                   className={`text-[10px] mt-1 tracking-tight font-bold transition-colors ${

@@ -9,21 +9,35 @@ import { DebtsView } from './views/DebtsView';
 import { ReportsView } from './views/ReportsView';
 import { QuickInOutDrawer } from './components/mutations/QuickInOutDrawer';
 import { ToastProvider } from './components/common/Toast';
-import { seedInitialDataIfNeeded } from './db/schema';
+import { db, seedInitialDataIfNeeded } from './db/schema';
 import type { Product } from './db/schema';
 import { useProducts } from './hooks/useProducts';
 import { useLowStock } from './hooks/useLowStock';
 import { useDebts } from './hooks/useDebts';
+import { useCallback } from 'react';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [drawerType, setDrawerType] = useState<'IN' | 'OUT'>('IN');
   const [drawerSelectedProduct, setDrawerSelectedProduct] = useState<Product | null>(null);
+  const [todayMutationCount, setTodayMutationCount] = useState<number>(0);
 
   const { products, refresh: refreshProducts } = useProducts();
   const { count: lowStockCount, refresh: refreshLowStock } = useLowStock();
   const { summary: debtSummary, refresh: refreshDebts } = useDebts();
+
+  const refreshMutationCount = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const count = await db.stock_mutations
+        .filter((m) => m.timestamp.startsWith(today))
+        .count();
+      setTodayMutationCount(count);
+    } catch {
+      setTodayMutationCount(0);
+    }
+  }, []);
 
   // Initialize offline seed data on first launch
   useEffect(() => {
@@ -31,15 +45,17 @@ function MainApp() {
       refreshProducts();
       refreshLowStock();
       refreshDebts();
+      refreshMutationCount();
     });
-  }, []);
+  }, [refreshMutationCount]);
 
   // Refresh data whenever activeTab changes so changes across views are immediately reflected
   useEffect(() => {
     refreshProducts();
     refreshLowStock();
     refreshDebts();
-  }, [activeTab]);
+    refreshMutationCount();
+  }, [activeTab, refreshMutationCount]);
 
   const handleOpenStockIn = (product?: Product) => {
     refreshProducts();
@@ -58,12 +74,15 @@ function MainApp() {
   const handleMutationSuccess = () => {
     refreshProducts();
     refreshLowStock();
+    refreshDebts();
+    refreshMutationCount();
   };
 
   const handleDataRestored = () => {
     refreshProducts();
     refreshLowStock();
     refreshDebts();
+    refreshMutationCount();
   };
 
   const activeDebtTotalCount = debtSummary.activeReceivableCount + debtSummary.activePayableCount;
@@ -125,6 +144,7 @@ function MainApp() {
           selectedProduct={drawerSelectedProduct}
           products={products}
           onSuccess={handleMutationSuccess}
+          onNavigateToHistory={() => setActiveTab('history')}
         />
 
         {/* Fixed Mobile Bottom Navigation */}
@@ -133,6 +153,7 @@ function MainApp() {
           onTabChange={setActiveTab}
           lowStockCount={lowStockCount}
           activeDebtCount={activeDebtTotalCount}
+          historyCount={todayMutationCount}
         />
       </div>
     </div>

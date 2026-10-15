@@ -126,3 +126,64 @@ export async function recordDebtPayment(id: number, paymentAmount: number): Prom
 export async function deleteDebt(id: number): Promise<void> {
   await db.debts.delete(id);
 }
+
+export interface KnownCustomer {
+  name: string;
+  phone?: string;
+  activeDebt: number; // sisa kasbon piutang belum lunas
+  hasActiveDebt: boolean;
+}
+
+/**
+ * Ambil daftar nama pelanggan yang pernah bertransaksi atau memiliki hutang/piutang
+ */
+export async function getKnownCustomers(): Promise<KnownCustomer[]> {
+  const debts = await db.debts.toArray();
+  const customerMap = new Map<string, { phone?: string; activeDebt: number }>();
+
+  // Kumpulkan dari tabel hutang/piutang
+  for (const d of debts) {
+    const key = d.person_name.trim();
+    if (!key) continue;
+    const existing = customerMap.get(key) || { phone: d.phone, activeDebt: 0 };
+    if (!existing.phone && d.phone) existing.phone = d.phone;
+    if (d.type === 'PIUTANG' && d.status !== 'PAID') {
+      const remaining = Math.max(0, d.total_amount - d.paid_amount);
+      existing.activeDebt += remaining;
+    }
+    customerMap.set(key, existing);
+  }
+
+  // Juga kumpulkan dari riwayat mutasi penjualan terdahulu
+  const mutations = await db.stock_mutations.where('type').equals('OUT').limit(150).toArray();
+  for (const m of mutations) {
+    if (!m.notes) continue;
+    const match = m.notes.match(/(?:Pembeli|Kasbon):\s*([^(]+)/i);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      if (name && !customerMap.has(name)) {
+        customerMap.set(name, { activeDebt: 0 });
+      }
+    }
+  }
+
+  const result: KnownCustomer[] = [];
+  customerMap.forEach((val, name) => {
+    result.push({
+      name,
+      phone: val.phone,
+      activeDebt: val.activeDebt,
+      hasActiveDebt: val.activeDebt > 0,
+    });
+  });
+
+  // Urutkan yang punya piutang aktif di atas, lalu abjad
+  result.sort((a, b) => {
+    if (b.hasActiveDebt !== a.hasActiveDebt) {
+      return b.hasActiveDebt ? 1 : -1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return result;
+}

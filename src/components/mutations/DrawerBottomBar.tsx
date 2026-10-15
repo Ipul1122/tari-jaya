@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
-import { ChevronRight, Save } from 'lucide-react';
+import { ChevronRight, Save, Banknote } from 'lucide-react';
 
 interface DrawerBottomBarProps {
   itemCount: number;
@@ -63,17 +63,20 @@ export const DrawerBottomBar: React.FC<DrawerBottomBarProps> = ({
               className={`flex-1 py-3 px-4 rounded-xl text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 min-h-[46px] ${
                 isStockIn
                   ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 disabled:bg-stone-300'
-                  : 'bg-red-600 hover:bg-red-700 shadow-red-600/20 disabled:bg-stone-300'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25 disabled:bg-stone-300'
               }`}
             >
-              <Save className="w-4 h-4" />
-              <span>
-                {isSubmitting
-                  ? 'Menyimpan...'
-                  : isStockIn
-                    ? 'Simpan Barang Masuk'
-                    : 'Simpan Penjualan'}
-              </span>
+              {isStockIn ? (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Menyimpan...' : 'Simpan Barang Masuk'}</span>
+                </>
+              ) : (
+                <>
+                  <Banknote className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Memproses...' : 'Bayar'}</span>
+                </>
+              )}
             </button>
           </>
         )}
