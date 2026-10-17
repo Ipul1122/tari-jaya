@@ -6,6 +6,7 @@ export interface StockInParams {
   quantity: number;
   unitCost?: number;
   notes?: string;
+  batchId?: string;
 }
 
 export interface StockOutParams {
@@ -13,6 +14,8 @@ export interface StockOutParams {
   quantity: number;
   unitPrice?: number;
   notes?: string;
+  customerName?: string;
+  batchId?: string;
   allowNegativeStock?: boolean;
 }
 
@@ -30,9 +33,10 @@ export async function recordBulkStockIn(items: StockInParams[]): Promise<number[
     }
   }
 
-  return await db.transaction('rw', db.products, db.stock_mutations, async () => {
+  const ids = await db.transaction('rw', db.products, db.stock_mutations, async () => {
     const mutationIds: number[] = [];
     const now = new Date().toISOString();
+    const batchId = `IN-${Date.now()}`;
 
     for (const item of items) {
       const product = await db.products.get(item.productId);
@@ -55,6 +59,7 @@ export async function recordBulkStockIn(items: StockInParams[]): Promise<number[
         unit_price: product.selling_price,
         gross_profit: 0,
         notes: item.notes?.trim() || undefined,
+        batch_id: item.batchId || batchId,
         timestamp: now
       });
 
@@ -63,6 +68,12 @@ export async function recordBulkStockIn(items: StockInParams[]): Promise<number[
 
     return mutationIds;
   });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('tari-mutations-updated'));
+  }
+
+  return ids;
 }
 
 /**
@@ -90,7 +101,7 @@ export async function recordBulkStockOut(
     }
   }
 
-  return await db.transaction('rw', db.products, db.stock_mutations, async () => {
+  const ids = await db.transaction('rw', db.products, db.stock_mutations, async () => {
     const mutationIds: number[] = [];
     const now = new Date().toISOString();
 
@@ -125,6 +136,8 @@ export async function recordBulkStockOut(
         unit_price: activePrice,
         gross_profit: profit,
         notes: item.notes?.trim() || undefined,
+        customer_name: item.customerName?.trim() || undefined,
+        batch_id: item.batchId || undefined,
         timestamp: now
       });
 
@@ -133,6 +146,12 @@ export async function recordBulkStockOut(
 
     return mutationIds;
   });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('tari-mutations-updated'));
+  }
+
+  return ids;
 }
 
 /**
@@ -144,31 +163,9 @@ export async function recordStockOut(params: StockOutParams): Promise<number> {
 }
 
 /**
- * Transaksi Atomik: Pembatalan Mutasi (Void / Rollback)
+ * Re-export fungsi pembatalan mutasi & sinkronisasi kasbon
  */
-export async function voidMutation(mutationId: number): Promise<void> {
-  await db.transaction('rw', db.products, db.stock_mutations, async () => {
-    const mutation = await db.stock_mutations.get(mutationId);
-    if (!mutation) throw new Error('Mutasi tidak ditemukan');
-
-    const product = await db.products.get(mutation.product_id);
-    if (product) {
-      let rolledBackStock = product.current_stock;
-      if (mutation.type === 'IN') {
-        rolledBackStock = product.current_stock - mutation.quantity;
-      } else if (mutation.type === 'OUT') {
-        rolledBackStock = product.current_stock + mutation.quantity;
-      }
-
-      await db.products.update(product.id!, {
-        current_stock: rolledBackStock,
-        updated_at: new Date().toISOString()
-      });
-    }
-
-    await db.stock_mutations.delete(mutationId);
-  });
-}
+export { voidMutation, findLinkedDebt, type VoidMutationResult } from './mutationVoidOperations';
 
 /**
  * Tambah Produk Baru dengan Stok Awal (jika ada)

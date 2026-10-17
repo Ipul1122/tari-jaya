@@ -1,11 +1,8 @@
 import React from 'react';
-import type { DebtType } from '../../db/schema';
 import { formatRupiahInput } from '../../utils/formatters';
 import { User, Phone, Calendar, FileText } from 'lucide-react';
 
 interface DebtFormFieldsProps {
-  type: DebtType;
-  setType: (type: DebtType) => void;
   personName: string;
   setPersonName: (val: string) => void;
   phone: string;
@@ -21,8 +18,6 @@ interface DebtFormFieldsProps {
 }
 
 export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
-  type,
-  setType,
   personName,
   setPersonName,
   phone,
@@ -38,39 +33,10 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
 }) => {
   return (
     <>
-      {/* Type Toggle */}
-      <div>
-        <label className="text-xs font-bold text-slate-900 block mb-1.5">Jenis Catatan</label>
-        <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => setType('PIUTANG')}
-            className={`py-2.5 px-3 rounded-xl font-bold text-xs transition min-h-[44px] ${
-              type === 'PIUTANG'
-                ? 'bg-sky-600 text-white shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            Kasbon Pelanggan (Piutang)
-          </button>
-          <button
-            type="button"
-            onClick={() => setType('HUTANG')}
-            className={`py-2.5 px-3 rounded-xl font-bold text-xs transition min-h-[44px] ${
-              type === 'HUTANG'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-stone-600 hover:text-stone-900'
-            }`}
-          >
-            Hutang ke Supplier
-          </button>
-        </div>
-      </div>
-
-      {/* Person Name */}
+      {/* Person Name (Pelanggan) */}
       <div>
         <label htmlFor="debtPersonName" className="text-xs font-bold text-slate-900 block mb-1">
-          Nama {type === 'PIUTANG' ? 'Pelanggan' : 'Supplier / Distributor'} <span className="text-red-500">*</span>
+          Nama Pelanggan / Tukang / Mandor <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400">
@@ -81,9 +47,10 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
             type="text"
             value={personName}
             onChange={(e) => setPersonName(e.target.value)}
-            placeholder={type === 'PIUTANG' ? 'Contoh: Bu Ani Warung' : 'Contoh: CV Beras Jaya'}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold text-slate-900 min-h-[44px]"
+            placeholder="Contoh: Pak Joko (Mandor) / Pak Budi Tukang / Proyek Pak Hendra"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-semibold text-slate-900 min-h-[44px]"
             required
+            autoFocus
           />
         </div>
       </div>
@@ -103,7 +70,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="08xxxxxxxxxx"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold text-slate-900 min-h-[44px]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-semibold text-slate-900 min-h-[44px]"
           />
         </div>
       </div>
@@ -112,7 +79,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="debtTotalAmount" className="text-xs font-bold text-slate-900 block mb-1">
-            Total Nominal <span className="text-red-500">*</span>
+            Total Kasbon <span className="text-red-500">*</span>
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
@@ -125,7 +92,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
               value={totalAmountInput}
               onChange={(e) => setTotalAmountInput(formatRupiahInput(e.target.value))}
               placeholder="0"
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-bold text-slate-900 min-h-[44px]"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-bold text-slate-900 min-h-[44px]"
               required
             />
           </div>
@@ -133,7 +100,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
 
         <div>
           <label htmlFor="debtPaidAmount" className="text-xs font-bold text-slate-900 block mb-1">
-            Uang Muka / Dicicil
+            Uang Muka / Titipan
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">
@@ -146,7 +113,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
               value={paidAmountInput}
               onChange={(e) => setPaidAmountInput(formatRupiahInput(e.target.value))}
               placeholder="0"
-              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-bold text-slate-900 min-h-[44px]"
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-bold text-slate-900 min-h-[44px]"
             />
           </div>
         </div>
@@ -155,7 +122,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
       {/* Due Date */}
       <div>
         <label htmlFor="debtDueDate" className="text-xs font-bold text-slate-900 block mb-1">
-          Tanggal Jatuh Tempo <span className="text-stone-400 font-normal">(opsional)</span>
+          Tanggal Janji Bayar <span className="text-stone-400 font-normal">(opsional)</span>
         </label>
         <div className="relative">
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400">
@@ -166,7 +133,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm text-slate-900 min-h-[44px]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm text-slate-900 min-h-[44px]"
           />
         </div>
       </div>
@@ -174,7 +141,7 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
       {/* Notes */}
       <div>
         <label htmlFor="debtNotes" className="text-xs font-bold text-slate-900 block mb-1">
-          Catatan / Rincian Barang <span className="text-stone-400 font-normal">(opsional)</span>
+          Catatan / Rincian Material <span className="text-stone-400 font-normal">(opsional)</span>
         </label>
         <div className="relative">
           <span className="absolute left-3.5 top-3 text-stone-400">
@@ -185,8 +152,8 @@ export const DebtFormFields: React.FC<DebtFormFieldsProps> = ({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="Contoh: Beras 5 sak, Minyak 2 dus"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs text-slate-900 resize-none min-h-[44px]"
+            placeholder="Contoh: Semen 20 sak, Pasir 1 Colt, Besi 10mm 15 btg"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-sky-500 text-xs text-slate-900 resize-none min-h-[44px]"
           />
         </div>
       </div>

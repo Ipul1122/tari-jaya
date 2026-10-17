@@ -59,7 +59,7 @@ export const DrawerReviewTab: React.FC<DrawerReviewTabProps> = ({
           onClick={onSelectTab}
           className="text-orange-600 hover:text-orange-700 font-bold text-[11px] flex items-center space-x-0.5"
         >
-          <span>+ Tambah Lain</span>
+          <span>Tambah Lain</span>
         </button>
       </div>
 

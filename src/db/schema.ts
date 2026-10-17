@@ -31,6 +31,7 @@ export interface DebtRecord {
   due_date?: string;          // Tanggal jatuh tempo (Opsional, format YYYY-MM-DD)
   status: DebtStatus;         // UNPAID | PARTIAL | PAID
   notes?: string;             // Catatan barang / rincian (opsional)
+  batch_id?: string;          // ID batch transaksi penjualan jika berasal dari kasbon checkout
   created_at: string;         // ISO String
   updated_at: string;         // ISO String
 }
@@ -44,6 +45,8 @@ export interface StockMutation {
   unit_price: number;     // Harga jual saat transaksi terjadi (Integer IDR)
   gross_profit: number;   // Jika type === 'OUT': (unit_price - unit_cost) * quantity
   notes?: string;
+  customer_name?: string; // Nama pelanggan/pembeli jika ada
+  batch_id?: string;      // Pengelompokan transaksi batch/checkout
   timestamp: string;      // ISO String YYYY-MM-DDTHH:mm:ss.sssZ
 }
 
@@ -138,6 +141,14 @@ export async function seedInitialDataIfNeeded() {
       name: 'Umum',
       created_at: new Date().toISOString()
     });
+  }
+
+  // 3. Pastikan semua catatan lama berjenis HUTANG dimigrasikan ke PIUTANG (Kasbon Pelanggan)
+  const legacyDebts = await db.debts.where('type').equals('HUTANG').toArray();
+  for (const d of legacyDebts) {
+    if (d.id) {
+      await db.debts.update(d.id, { type: 'PIUTANG' });
+    }
   }
 }
 

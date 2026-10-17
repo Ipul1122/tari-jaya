@@ -160,7 +160,7 @@ export const ProductVariantRow: React.FC<ProductVariantRowProps> = ({
           className="py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-2xs active:scale-95 transition min-h-[44px]"
         >
           <Plus className="w-3.5 h-3.5 stroke-[3]" />
-          <span>+ Masuk</span>
+          <span>Masuk</span>
         </button>
         <button
           type="button"
@@ -168,7 +168,7 @@ export const ProductVariantRow: React.FC<ProductVariantRowProps> = ({
           className="py-1.5 px-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-2xs active:scale-95 transition min-h-[44px]"
         >
           <Minus className="w-3.5 h-3.5 stroke-[3]" />
-          <span>- Keluar</span>
+          <span>Keluar</span>
         </button>
       </div>
     </div>

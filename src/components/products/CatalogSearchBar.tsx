@@ -36,7 +36,7 @@ export const CatalogSearchBar: React.FC<CatalogSearchBarProps> = ({
             type="text"
             value={searchInput}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Cari nama barang atau catatan..."
+            placeholder="Cari nama material, ukuran, atau merek..."
             className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-stone-50 border border-stone-300 text-slate-900 placeholder-stone-400 text-xs focus:outline-none focus:border-orange-500 transition font-medium min-h-[44px]"
           />
           {searchInput && (

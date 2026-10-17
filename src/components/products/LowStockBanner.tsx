@@ -32,11 +32,11 @@ export const LowStockBanner: React.FC<LowStockBannerProps> = ({
                 Peringatan Stok Kritis
               </span>
               <span className="bg-red-600 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full">
-                {count} Barang
+                {count} Material
               </span>
             </div>
             <p className="text-xs text-slate-700 mt-0.5">
-              Stok ≤ 9 unit. Segera lakukan kulakan atau restock.
+              Stok ≤ 9 unit. Segera lakukan kulakan atau restock material.
             </p>
           </div>
         </div>

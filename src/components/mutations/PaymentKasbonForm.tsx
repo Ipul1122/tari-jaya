@@ -74,7 +74,7 @@ export const PaymentKasbonForm: React.FC<PaymentKasbonFormProps> = ({
           type="text"
           value={debtNotes}
           onChange={(e) => onDebtNotesChange(e.target.value)}
-          placeholder="Contoh: Janji bayar akhir pekan..."
+          placeholder="Contoh: Janji bayar termin proyek / akhir pekan..."
           className="w-full px-3 py-2 rounded-xl bg-white border border-stone-300 text-xs text-slate-900 focus:outline-none focus:border-amber-500 min-h-[38px]"
         />
       </div>

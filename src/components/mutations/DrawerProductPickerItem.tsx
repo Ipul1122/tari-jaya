@@ -99,8 +99,9 @@ export const DrawerProductPickerItem: React.FC<DrawerProductPickerItemProps> = (
               value={qtyInCart === 0 ? '' : qtyInCart}
               onChange={(e) => onDirectQuantityChange(product, e.target.value)}
               onBlur={() => onBlur(product.id!)}
+              onFocus={(e) => e.target.select()}
               placeholder="0"
-              className="w-12 h-8 text-center font-mono font-bold text-xs text-orange-700 bg-orange-50/60 border border-orange-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition"
+              className="w-14 h-8 text-center font-mono font-bold text-xs text-orange-700 bg-orange-50/60 border border-orange-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 transition"
               title="Ketik jumlah unit"
             />
             <button

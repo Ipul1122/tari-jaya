@@ -35,6 +35,13 @@ export function useLowStock() {
 
   useEffect(() => {
     refresh();
+    const handleUpdate = () => {
+      refresh();
+    };
+    window.addEventListener('tari-mutations-updated', handleUpdate);
+    return () => {
+      window.removeEventListener('tari-mutations-updated', handleUpdate);
+    };
   }, [refresh]);
 
   return {

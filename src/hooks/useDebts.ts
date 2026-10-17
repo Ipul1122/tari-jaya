@@ -13,8 +13,8 @@ export interface DebtSummary {
 }
 
 export function useDebts(
-  typeFilter: DebtTypeFilter = 'ALL',
-  statusFilter: DebtStatusFilter = 'ACTIVE',
+  typeFilter: DebtTypeFilter = 'PIUTANG',
+  statusFilter: DebtStatusFilter = 'ALL',
   searchQuery: string = ''
 ) {
   const [debts, setDebts] = useState<DebtRecord[]>([]);
@@ -48,15 +48,10 @@ export function useDebts(
         const remaining = Math.max(0, d.total_amount - d.paid_amount);
         const isActive = d.status !== 'PAID';
 
-        if (d.type === 'PIUTANG') {
+        if (d.type === 'PIUTANG' || d.type === 'HUTANG') {
           if (isActive) {
             totalReceivable += remaining;
             activeReceivableCount += 1;
-          }
-        } else if (d.type === 'HUTANG') {
-          if (isActive) {
-            totalPayable += remaining;
-            activePayableCount += 1;
           }
         }
 
@@ -76,7 +71,9 @@ export function useDebts(
       // Filter list
       let filtered = records;
 
-      if (typeFilter !== 'ALL') {
+      if (typeFilter === 'PIUTANG') {
+        filtered = filtered.filter((d) => d.type === 'PIUTANG' || d.type === 'HUTANG');
+      } else if (typeFilter !== 'ALL') {
         filtered = filtered.filter((d) => d.type === typeFilter);
       }
 
@@ -106,6 +103,9 @@ export function useDebts(
 
   useEffect(() => {
     refresh();
+    const handleUpdate = () => refresh();
+    window.addEventListener('tari-debts-updated', handleUpdate);
+    return () => window.removeEventListener('tari-debts-updated', handleUpdate);
   }, [refresh]);
 
   return {

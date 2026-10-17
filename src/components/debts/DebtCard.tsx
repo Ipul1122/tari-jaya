@@ -28,7 +28,6 @@ export const DebtCard: React.FC<DebtCardProps> = ({
   const remaining = Math.max(0, debt.total_amount - debt.paid_amount);
   const percentPaid = Math.min(100, Math.round((debt.paid_amount / debt.total_amount) * 100));
   const isPaid = debt.status === 'PAID';
-  const isPiutang = debt.type === 'PIUTANG';
 
   // Check overdue
   const today = new Date().toISOString().slice(0, 10);
@@ -42,9 +41,9 @@ export const DebtCard: React.FC<DebtCardProps> = ({
       ? '62' + cleanPhone.slice(1)
       : cleanPhone;
 
-    const roleText = isPiutang ? 'tagihan kasbon' : 'kewajiban pembayaran';
+    const roleText = 'tagihan kasbon material';
     const noteText = debt.notes ? ` untuk ${debt.notes}` : '';
-    const message = `Halo Bpk/Ibu ${debt.person_name},\n\nMengingatkan catatan ${roleText} di Toko Tari Jaya${noteText} dengan sisa sebesar *${formatCurrency(remaining)}* (Total: ${formatCurrency(debt.total_amount)}).\n\nTerima kasih.`;
+    const message = `Halo Bpk/Ibu ${debt.person_name},\n\nMengingatkan catatan ${roleText} di Toko Material Tari Jaya${noteText} dengan sisa sebesar *${formatCurrency(remaining)}* (Total: ${formatCurrency(debt.total_amount)}).\n\nTerima kasih.`;
 
     window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -59,12 +58,8 @@ export const DebtCard: React.FC<DebtCardProps> = ({
     }`}>
       {/* Header: Type Badge & Status */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-          isPiutang 
-            ? 'bg-sky-100 text-sky-800 border border-sky-200' 
-            : 'bg-amber-100 text-amber-800 border border-amber-200'
-        }`}>
-          {isPiutang ? 'Kasbon Pelanggan' : 'Hutang ke Supplier'}
+        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
+          Kasbon Pelanggan
         </span>
 
         {isPaid ? (

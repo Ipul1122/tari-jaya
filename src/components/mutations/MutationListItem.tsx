@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { MutationWithProduct } from '../../hooks/useMutations';
 import { formatCurrency, formatNumber, formatDateTime } from '../../utils/formatters';
-import { ArrowDownRight, ArrowUpRight, RotateCcw } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, RotateCcw, Receipt } from 'lucide-react';
 import { PopoverConfirm } from '../common/PopoverConfirm';
 
 interface MutationListItemProps {
@@ -9,6 +9,7 @@ interface MutationListItemProps {
   onVoid: (mutationId: number) => Promise<void>;
   isUnread?: boolean;
   onMarkAsRead?: (mutationId: number) => void;
+  onViewReceipt?: (mutation: MutationWithProduct) => void;
 }
 
 export const MutationListItem: React.FC<MutationListItemProps> = ({ 
@@ -16,6 +17,7 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({
   onVoid,
   isUnread = false,
   onMarkAsRead,
+  onViewReceipt,
 }) => {
   const [showConfirmVoid, setShowConfirmVoid] = useState<boolean>(false);
 
@@ -37,32 +39,47 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({
     <div 
       onClick={() => isUnread && onMarkAsRead?.(mutation.id!)}
       className={`relative rounded-2xl p-3.5 shadow-sm space-y-2.5 text-slate-900 transition-colors ${
+        isIn ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-red-500'
+      } ${
         isUnread 
           ? 'bg-orange-50/40 border-2 border-orange-400 cursor-pointer' 
           : 'bg-white border border-stone-200/90'
       }`}
     >
-      {/* Top row: Type badge, product name, quantity */}
+      {/* Explicit Transaction Type Header Badge */}
+      <div className="flex items-center justify-between pb-1 border-b border-stone-100">
+        <span
+          className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide ${
+            isIn
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+              : 'bg-red-100 text-red-700 border border-red-200'
+          }`}
+        >
+          {isIn ? <ArrowDownRight className="w-3 h-3 stroke-[3]" /> : <ArrowUpRight className="w-3 h-3 stroke-[3]" />}
+          <span>{isIn ? 'BARANG MASUK (PEMBELIAN)' : 'BARANG KELUAR (PENJUALAN)'}</span>
+        </span>
+
+        {isUnread && (
+          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-600 text-white animate-pulse shrink-0">
+            Baru Saja
+          </span>
+        )}
+      </div>
+
+      {/* Top row: Product name, quantity */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center space-x-2.5 min-w-0">
           <div
             className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
               isIn
-                ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                : 'bg-red-100 text-red-700 border border-red-200'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
             }`}
           >
-            {isIn ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+            {isIn ? <ArrowDownRight className="w-4 h-4 stroke-[2.5]" /> : <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />}
           </div>
           <div className="truncate">
-            <div className="flex items-center space-x-1.5 truncate">
-              <h4 className="text-xs font-bold text-slate-900 truncate">{mutation.product_name}</h4>
-              {isUnread && (
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-orange-600 text-white animate-pulse shrink-0">
-                  Baru Saja
-                </span>
-              )}
-            </div>
+            <h4 className="text-xs font-bold text-slate-900 truncate">{mutation.product_name}</h4>
             <span className="text-[10px] text-stone-500 block font-medium">
               {formatDateTime(mutation.timestamp)}
             </span>
@@ -71,13 +88,13 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({
 
         <div className="text-right shrink-0">
           <span
-            className={`text-sm font-mono font-bold ${
-              isIn ? 'text-orange-600' : 'text-red-600'
+            className={`text-xs font-mono font-black block ${
+              isIn ? 'text-emerald-700' : 'text-red-600'
             }`}
           >
-            {isIn ? '+' : '-'}{formatNumber(mutation.quantity)} unit
+            {isIn ? '+' : '-'}{formatNumber(mutation.quantity)} unit {isIn ? '(Masuk)' : '(Keluar)'}
           </span>
-          <span className="block text-[11px] font-mono text-stone-600 font-semibold">
+          <span className="block text-[11px] font-mono text-stone-700 font-bold mt-0.5">
             {formatCurrency(totalAmount)}
           </span>
         </div>
@@ -105,28 +122,45 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({
           {mutation.notes ? `"${mutation.notes}"` : 'Tanpa catatan'}
         </span>
 
-        <div className="relative">
-          <button
-            onClick={() => setShowConfirmVoid(!showConfirmVoid)}
-            className="flex items-center space-x-1 px-2 py-1 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-95 transition font-bold"
-            title="Batalkan mutasi dan rollback stok"
-          >
-            <RotateCcw className="w-3 h-3 text-red-600" />
-            <span className="text-[10px] text-red-600 font-bold">Batalkan</span>
-          </button>
+        <div className="flex items-center space-x-1">
+          {!isIn && onViewReceipt && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewReceipt(mutation);
+              }}
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-orange-600 hover:text-orange-700 hover:bg-orange-50 active:scale-95 transition font-bold"
+              title="Cetak Struk Transaksi"
+            >
+              <Receipt className="w-3 h-3 text-orange-600" />
+              <span className="text-[10px] text-orange-600 font-bold">Struk</span>
+            </button>
+          )}
 
-          {/* Anchored Popover Confirmation */}
-          <PopoverConfirm
-            isOpen={showConfirmVoid}
-            title="Batalkan Transaksi?"
-            description={rollbackDescription}
-            confirmLabel="Ya, Batalkan"
-            cancelLabel="Kembali"
-            variant="danger"
-            position="top-right"
-            onConfirm={handleConfirmVoid}
-            onCancel={() => setShowConfirmVoid(false)}
-          />
+          <div className="relative">
+            <button
+              onClick={() => setShowConfirmVoid(!showConfirmVoid)}
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-95 transition font-bold"
+              title="Batalkan mutasi dan rollback stok"
+            >
+              <RotateCcw className="w-3 h-3 text-red-600" />
+              <span className="text-[10px] text-red-600 font-bold">Batalkan</span>
+            </button>
+
+            {/* Anchored Popover Confirmation */}
+            <PopoverConfirm
+              isOpen={showConfirmVoid}
+              title="Batalkan Transaksi?"
+              description={rollbackDescription}
+              confirmLabel="Ya, Batalkan"
+              cancelLabel="Kembali"
+              variant="danger"
+              position="top-right"
+              onConfirm={handleConfirmVoid}
+              onCancel={() => setShowConfirmVoid(false)}
+            />
+          </div>
         </div>
       </div>
     </div>

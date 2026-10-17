@@ -27,7 +27,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     },
     {
       id: 'debts' as NavTab,
-      label: 'Hutang',
+      label: 'Piutang',
       icon: BookOpenText,
       badge: activeDebtCount > 0 ? activeDebtCount : undefined,
     },

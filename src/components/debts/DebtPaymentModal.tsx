@@ -56,7 +56,7 @@ export const DebtPaymentModal: React.FC<DebtPaymentModalProps> = ({
       await recordDebtPayment(debt.id!, currentPayValue);
       showToast(
         currentPayValue >= remaining
-          ? 'Hutang / Piutang berhasil dilunasi!'
+          ? 'Kasbon pelanggan berhasil dilunasi!'
           : `Pembayaran cicilan Rp ${currentPayValue.toLocaleString('id-ID')} berhasil dicatat`,
         'success'
       );

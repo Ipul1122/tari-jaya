@@ -41,6 +41,7 @@ export async function createDebt(params: CreateDebtParams): Promise<number> {
     due_date: params.due_date || undefined,
     status,
     notes: params.notes?.trim() || undefined,
+    batch_id: params.batch_id || undefined,
     created_at: now,
     updated_at: now
   });

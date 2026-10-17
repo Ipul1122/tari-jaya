@@ -5,13 +5,9 @@ import { recordBulkStockOut } from '../../db/operations';
 import { PaymentCustomerSelector } from './PaymentCustomerSelector';
 import { PaymentKasbonForm } from './PaymentKasbonForm';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
-import { 
-  X, 
-  CheckCircle2, 
-  BookOpenText, 
-  AlertCircle, 
-  ArrowRight 
-} from 'lucide-react';
+import { buildReceiptFromCheckout } from '../../utils/receiptGenerator';
+import type { ReceiptData } from '../../types/receipt';
+import { X, CheckCircle2, BookOpenText, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface PaymentCheckoutModalProps {
   isOpen: boolean;
@@ -20,7 +16,7 @@ interface PaymentCheckoutModalProps {
   totalValue: number;
   totalUnits: number;
   allowNegative: boolean;
-  onSuccess: (customerName: string, isKasbon: boolean) => void;
+  onSuccess: (customerName: string, isKasbon: boolean, receipt?: ReceiptData) => void;
 }
 
 export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
@@ -49,20 +45,10 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    setError(null);
-    setSearchQuery('');
-    setSelectedCustomer(null);
-    setIsCreatingNew(false);
-    setNewCustomerName('');
-    setNewCustomerPhone('');
-    setPaymentType('CASH');
-    setDpAmount(0);
-    setDueDate('');
-    setDebtNotes('');
-
-    getKnownCustomers().then((list) => {
-      setKnownCustomers(list);
-    });
+    setError(null); setSearchQuery(''); setSelectedCustomer(null); setIsCreatingNew(false);
+    setNewCustomerName(''); setNewCustomerPhone(''); setPaymentType('CASH'); setDpAmount(0);
+    setDueDate(''); setDebtNotes('');
+    getKnownCustomers().then(setKnownCustomers);
   }, [isOpen]);
 
   const effectiveCustomerName = selectedCustomer
@@ -115,33 +101,51 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
         ? `Kasbon: ${effectiveCustomerName} (Sisa ${formatCurrency(remainingDebt)})`
         : `Pembeli: ${effectiveCustomerName} (Lunas)`;
 
+      const batchId = `SALE-${Date.now()}`;
+
       await recordBulkStockOut(
         items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           notes: item.notes ? `${mutationNote} - ${item.notes}` : mutationNote,
+          customerName: effectiveCustomerName,
+          batchId,
           allowNegativeStock: allowNegative,
         })),
         allowNegative
       );
 
-      if (isKasbon) {
-        const itemSummary = items.map((i) => `${i.product.name} (${i.quantity})`).join(', ');
-        await createDebt({
-          type: 'PIUTANG',
-          person_name: effectiveCustomerName,
-          phone: newCustomerPhone.trim() || selectedCustomer?.phone || undefined,
-          total_amount: totalValue,
-          paid_amount: dpAmount,
-          due_date: dueDate || undefined,
-          notes: debtNotes.trim()
-            ? `${debtNotes.trim()} [${itemSummary}]`
-            : `Penjualan kasbon: ${itemSummary}`,
-        });
+      const itemSummary = items.map((i) => `${i.product.name} (${i.quantity})`).join(', ');
+      await createDebt({
+        type: 'PIUTANG',
+        person_name: effectiveCustomerName,
+        phone: newCustomerPhone.trim() || selectedCustomer?.phone || undefined,
+        total_amount: totalValue,
+        paid_amount: isKasbon ? dpAmount : totalValue,
+        due_date: dueDate || undefined,
+        batch_id: batchId,
+        notes: isKasbon
+          ? (debtNotes.trim() ? `${debtNotes.trim()} [${itemSummary}]` : `Penjualan kasbon: ${itemSummary}`)
+          : `Penjualan lunas: ${itemSummary}`,
+      });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tari-debts-updated'));
       }
 
-      onSuccess(effectiveCustomerName, isKasbon);
+      const receipt = buildReceiptFromCheckout(
+        items,
+        effectiveCustomerName,
+        newCustomerPhone.trim() || selectedCustomer?.phone,
+        totalValue,
+        isKasbon,
+        dpAmount,
+        dueDate,
+        batchId
+      );
+
+      onSuccess(effectiveCustomerName, isKasbon, receipt);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal memproses pembayaran';
       setError(msg);
@@ -153,7 +157,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-xs animate-fade-in">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/65 backdrop-blur-xs animate-fade-in">
       <div 
         className="w-full max-w-lg bg-[#FAF8F5] border border-stone-200 rounded-t-3xl sm:rounded-2xl max-h-[92vh] flex flex-col shadow-2xl animate-slide-up text-slate-900 pb-safe"
         role="dialog"
@@ -234,7 +238,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   <span className="text-xs font-bold">Kasbon / Piutang</span>
                   <BookOpenText className={`w-4 h-4 ${isKasbon ? 'text-amber-600' : 'text-stone-300'}`} />
                 </div>
-                <span className="text-[10px] text-stone-500 font-normal">Catat ke Buku Hutang</span>
+                <span className="text-[10px] text-stone-500 font-normal">Catat ke Buku Piutang</span>
               </button>
             </div>
           </div>

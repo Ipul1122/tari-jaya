@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { DebtRecord, DebtType } from '../../db/schema';
+import type { DebtRecord } from '../../db/schema';
 import { createDebt, updateDebt } from '../../db/debtOperations';
 import { formatRupiahInput, parseRupiahInput } from '../../utils/formatters';
 import { DebtFormFields } from './DebtFormFields';
@@ -9,7 +9,7 @@ import { X, CheckCircle2 } from 'lucide-react';
 interface DebtModalProps {
   isOpen: boolean;
   debtToEdit: DebtRecord | null;
-  defaultType?: DebtType;
+  defaultType?: 'PIUTANG';
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -17,13 +17,11 @@ interface DebtModalProps {
 export const DebtModal: React.FC<DebtModalProps> = ({
   isOpen,
   debtToEdit,
-  defaultType = 'PIUTANG',
   onClose,
   onSuccess,
 }) => {
   const { showToast } = useToast();
 
-  const [type, setType] = useState<DebtType>(defaultType);
   const [personName, setPersonName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [totalAmountInput, setTotalAmountInput] = useState<string>('');
@@ -35,7 +33,6 @@ export const DebtModal: React.FC<DebtModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (debtToEdit) {
-        setType(debtToEdit.type);
         setPersonName(debtToEdit.person_name);
         setPhone(debtToEdit.phone || '');
         setTotalAmountInput(formatRupiahInput(debtToEdit.total_amount));
@@ -43,7 +40,6 @@ export const DebtModal: React.FC<DebtModalProps> = ({
         setDueDate(debtToEdit.due_date || '');
         setNotes(debtToEdit.notes || '');
       } else {
-        setType(defaultType);
         setPersonName('');
         setPhone('');
         setTotalAmountInput('');
@@ -52,7 +48,7 @@ export const DebtModal: React.FC<DebtModalProps> = ({
         setNotes('');
       }
     }
-  }, [isOpen, debtToEdit, defaultType]);
+  }, [isOpen, debtToEdit]);
 
   if (!isOpen) return null;
 
@@ -60,19 +56,19 @@ export const DebtModal: React.FC<DebtModalProps> = ({
     e.preventDefault();
     const trimmedName = personName.trim();
     if (!trimmedName) {
-      showToast('Nama pelanggan atau supplier wajib diisi', 'error');
+      showToast('Nama pelanggan wajib diisi', 'error');
       return;
     }
 
     const total = parseRupiahInput(totalAmountInput);
     if (total <= 0) {
-      showToast('Total nominal tagihan harus lebih dari Rp 0', 'error');
+      showToast('Total nominal tagihan kasbon harus lebih dari Rp 0', 'error');
       return;
     }
 
     const paid = parseRupiahInput(paidAmountInput);
     if (paid > total) {
-      showToast('Uang muka / jumlah dibayar tidak boleh melebihi total nominal', 'error');
+      showToast('Uang muka / titipan tidak boleh melebihi total kasbon', 'error');
       return;
     }
 
@@ -80,7 +76,7 @@ export const DebtModal: React.FC<DebtModalProps> = ({
     try {
       if (debtToEdit?.id) {
         await updateDebt(debtToEdit.id, {
-          type,
+          type: 'PIUTANG',
           person_name: trimmedName,
           phone: phone.trim() || undefined,
           total_amount: total,
@@ -88,10 +84,10 @@ export const DebtModal: React.FC<DebtModalProps> = ({
           due_date: dueDate || undefined,
           notes: notes.trim() || undefined,
         });
-        showToast('Catatan hutang piutang berhasil diperbarui', 'success');
+        showToast('Catatan kasbon berhasil diperbarui', 'success');
       } else {
         await createDebt({
-          type,
+          type: 'PIUTANG',
           person_name: trimmedName,
           phone: phone.trim() || undefined,
           total_amount: total,
@@ -99,7 +95,7 @@ export const DebtModal: React.FC<DebtModalProps> = ({
           due_date: dueDate || undefined,
           notes: notes.trim() || undefined,
         });
-        showToast('Catatan baru berhasil ditambahkan', 'success');
+        showToast('Kasbon baru berhasil dicatat', 'success');
       }
       onSuccess();
       onClose();
@@ -122,9 +118,9 @@ export const DebtModal: React.FC<DebtModalProps> = ({
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100 bg-stone-50/70">
           <div>
             <h3 className="text-base font-bold text-slate-900">
-              {debtToEdit ? 'Ubah Catatan' : 'Tambah Catatan Baru'}
+              {debtToEdit ? 'Ubah Catatan Kasbon' : 'Catat Kasbon Baru'}
             </h3>
-            <p className="text-[11px] text-stone-500 font-medium">Buku Hutang & Piutang Toko</p>
+            <p className="text-[11px] text-stone-500 font-medium">Buku Piutang / Kasbon Pelanggan</p>
           </div>
           <button
             onClick={onClose}
@@ -138,8 +134,6 @@ export const DebtModal: React.FC<DebtModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
           <DebtFormFields
-            type={type}
-            setType={setType}
             personName={personName}
             setPersonName={setPersonName}
             phone={phone}
@@ -167,10 +161,10 @@ export const DebtModal: React.FC<DebtModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-3 px-4 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:bg-stone-300 text-white font-bold text-xs shadow-md shadow-orange-600/20 active:scale-95 transition min-h-[44px] flex items-center justify-center space-x-1.5"
+              className="flex-1 py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:bg-stone-300 text-white font-bold text-xs shadow-md shadow-sky-600/20 active:scale-95 transition min-h-[44px] flex items-center justify-center space-x-1.5"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{debtToEdit ? 'Simpan Perubahan' : 'Tambah Catatan'}</span>
+              <span>{debtToEdit ? 'Simpan Perubahan' : 'Catat Kasbon'}</span>
             </button>
           </div>
         </form>

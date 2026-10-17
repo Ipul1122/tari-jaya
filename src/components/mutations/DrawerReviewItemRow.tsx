@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { BulkItemEntry } from './QuickInOutDrawer';
 import { formatCurrency, formatNumber, formatRupiahInput, parseRupiahInput } from '../../utils/formatters';
 import { Minus, Plus, Trash2 } from 'lucide-react';
@@ -27,6 +27,40 @@ export const DrawerReviewItemRow: React.FC<DrawerReviewItemRowProps> = ({
   const isInsufficient = !isStockIn && item.quantity > item.product.current_stock;
   const subtotal = item.quantity * item.unitPrice;
   const isMaxStockReached = !isStockIn && !allowNegative && item.quantity >= item.product.current_stock;
+
+  const [qtyStr, setQtyStr] = useState<string>(String(item.quantity));
+
+  useEffect(() => {
+    setQtyStr(String(item.quantity));
+  }, [item.quantity]);
+
+  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    setQtyStr(raw);
+
+    if (raw === '') {
+      // Izinkan input kosong sementara agar user bisa hapus total & ketik angka baru
+      return;
+    }
+
+    const num = parseInt(raw, 10);
+    if (num > 0) {
+      const maxStock = item.product.current_stock;
+      if (!isStockIn && !allowNegative && num > maxStock) {
+        setQtyStr(String(maxStock));
+        onUpdateQty(index, maxStock);
+      } else {
+        onUpdateQty(index, num);
+      }
+    }
+  };
+
+  const handleQtyBlur = () => {
+    if (qtyStr === '' || parseInt(qtyStr, 10) <= 0) {
+      setQtyStr('1');
+      onUpdateQty(index, 1);
+    }
+  };
 
   return (
     <div
@@ -71,18 +105,28 @@ export const DrawerReviewItemRow: React.FC<DrawerReviewItemRowProps> = ({
           <div className="flex items-center space-x-1">
             <button
               type="button"
-              onClick={() => onUpdateQty(index, item.quantity - 1)}
-              className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 border border-stone-300 text-slate-800 font-bold flex items-center justify-center active:scale-95 transition"
+              disabled={item.quantity <= 1}
+              onClick={() => onUpdateQty(index, Math.max(1, item.quantity - 1))}
+              className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold transition ${
+                item.quantity <= 1
+                  ? 'bg-stone-100 text-stone-300 border-stone-200 cursor-not-allowed'
+                  : 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-slate-800 active:scale-95'
+              }`}
+              title={item.quantity <= 1 ? 'Jumlah minimal 1 unit (gunakan Hapus untuk membatalkan)' : 'Kurangi 1 unit'}
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
             <input
-              type="number"
-              min="1"
-              max={!isStockIn && !allowNegative ? item.product.current_stock : undefined}
-              value={item.quantity}
-              onChange={(e) => onUpdateQty(index, parseInt(e.target.value) || 1)}
-              className="w-12 h-8 text-center rounded-lg bg-stone-50 border border-stone-300 text-slate-900 font-mono font-bold text-xs focus:outline-none focus:border-orange-500"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={qtyStr}
+              onChange={handleQtyChange}
+              onBlur={handleQtyBlur}
+              onFocus={(e) => e.target.select()}
+              placeholder="1"
+              className="w-14 h-8 text-center rounded-lg bg-stone-50 border border-stone-300 text-slate-900 font-mono font-bold text-xs focus:outline-none focus:border-orange-500"
+              title="Ketik jumlah unit"
             />
             <button
               type="button"
@@ -129,7 +173,7 @@ export const DrawerReviewItemRow: React.FC<DrawerReviewItemRowProps> = ({
             type="text"
             value={item.notes || ''}
             onChange={(e) => onUpdateNotes(index, e.target.value)}
-            placeholder="Catatan transaksi (opsional)..."
+            placeholder="Catatan material (contoh: diantar pick-up / ambil sendiri)..."
             className="flex-1 mr-2 px-2 py-1 bg-stone-50 border border-stone-200 rounded-lg text-slate-800 text-[10px] focus:outline-none focus:border-orange-500"
           />
         )}

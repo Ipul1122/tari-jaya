@@ -53,7 +53,7 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   // Sheet 1: RINGKASAN LAPORAN
   // ----------------------------------------------------
   const summaryRows = [
-    { 'Parameter Laporan': 'Nama Toko', 'Nilai': 'Tari Jaya' },
+    { 'Parameter Laporan': 'Nama Toko', 'Nilai': 'Tari Jaya (Toko Material)' },
     { 'Parameter Laporan': 'Tanggal Ekspor', 'Nilai': formatDateTime(new Date().toISOString()) },
     { 'Parameter Laporan': 'Periode Laporan', 'Nilai': periodLabel },
     { 'Parameter Laporan': 'Rentang Tanggal', 'Nilai': startDate && endDate ? `${formatDate(startDate)} s/d ${formatDate(endDate)}` : '-' },
@@ -67,7 +67,7 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
     { 'Parameter Laporan': 'Total Kuantitas Barang Masuk', 'Nilai': totalInQty },
     { 'Parameter Laporan': 'Total Frekuensi Transaksi', 'Nilai': mutations.length },
     { 'Parameter Laporan': 'Total Jenis Produk di Katalog', 'Nilai': allProducts.length },
-    { 'Parameter Laporan': 'Total Catatan Hutang Piutang', 'Nilai': allDebts.length },
+    { 'Parameter Laporan': 'Total Catatan Piutang Kasbon', 'Nilai': allDebts.length },
   ];
 
   const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
@@ -147,7 +147,7 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   ];
 
   // ----------------------------------------------------
-  // Sheet 4: BUKU HUTANG PIUTANG
+  // Sheet 4: BUKU PIUTANG KASBON
   // ----------------------------------------------------
   const debtRows = allDebts.map((d, index) => {
     const remaining = Math.max(0, d.total_amount - d.paid_amount);
@@ -155,8 +155,8 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
 
     return {
       'No': index + 1,
-      'Jenis': d.type === 'PIUTANG' ? 'PIUTANG (KASBON PELANGGAN)' : 'HUTANG SUPPLIER',
-      'Nama Kontak': d.person_name,
+      'Jenis': 'PIUTANG (KASBON PELANGGAN)',
+      'Nama Pelanggan': d.person_name,
       'No. Telepon / WA': d.phone || '-',
       'Total Tagihan (Rp)': d.total_amount,
       'Sudah Dibayar (Rp)': d.paid_amount,
@@ -188,7 +188,7 @@ export async function exportReportsToExcel(params: ExportDataParams): Promise<st
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Ringkasan Laporan');
   XLSX.utils.book_append_sheet(workbook, mutationSheet, 'Riwayat Transaksi');
   XLSX.utils.book_append_sheet(workbook, catalogSheet, 'Katalog & Sisa Stok');
-  XLSX.utils.book_append_sheet(workbook, debtSheet, 'Buku Hutang Piutang');
+  XLSX.utils.book_append_sheet(workbook, debtSheet, 'Buku Piutang Kasbon');
 
   // 4. Download File XLSX
   const dateStr = new Date().toISOString().slice(0, 10);

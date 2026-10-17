@@ -1,7 +1,7 @@
 {
   "short_name": "Tari Jaya",
-  "name": "Tari Jaya - Inventory Toko",
-  "description": "Aplikasi Manajemen Stok & Inventaris Toko Tari Jaya Standalone Offline",
+  "name": "Tari Jaya - Toko Material",
+  "description": "Aplikasi Manajemen Stok & Piutang Toko Material Tari Jaya Standalone Offline",
   "icons": [
     {
       "src": "/logo-tari-jaya.png",

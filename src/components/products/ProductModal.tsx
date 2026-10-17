@@ -17,6 +17,7 @@ interface ProductModalProps {
     notes?: string;
   }) => Promise<void>;
   productToEdit?: Product | null;
+  initialName?: string;
   existingProducts?: Product[];
   onOpenStockInForExisting?: (product: Product) => void;
 }
@@ -26,6 +27,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onClose,
   onSave,
   productToEdit,
+  initialName = '',
   existingProducts = [],
   onOpenStockInForExisting,
 }) => {
@@ -45,14 +47,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       setInitialStock(productToEdit.current_stock);
       setNotes(productToEdit.notes || '');
     } else {
-      setName('');
+      setName(initialName || '');
       setCostPrice(0);
       setSellingPrice(0);
       setInitialStock(0);
       setNotes('');
     }
     setError(null);
-  }, [productToEdit, isOpen]);
+  }, [productToEdit, initialName, isOpen]);
 
   const duplicateProduct = useMemo(() => {
     if (productToEdit || !name.trim() || existingProducts.length === 0) return null;
@@ -147,14 +149,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
           <div>
             <label htmlFor="productName" className="text-xs font-bold text-slate-900 block mb-1">
-              Nama Barang <span className="text-red-500">*</span>
+              Nama Material / Barang <span className="text-red-500">*</span>
             </label>
             <input
               id="productName"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Es Teh Manis, Beras 5kg"
+              placeholder="Contoh: Semen Gresik 50kg, Besi Beton 10mm SNI, Cat Dulux 5kg"
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold text-slate-900 min-h-[44px]"
               autoFocus
               required
@@ -232,7 +234,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Contoh: Beli di Agen Herbel, Supplier Mas Budi"
+              placeholder="Contoh: Distributor PT Semen Padang, Toko Besi Abadi"
               className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs text-slate-900 min-h-[44px]"
             />
           </div>

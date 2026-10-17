@@ -3,18 +3,7 @@ import { db } from '../../db/schema';
 import type { Product, StockMutation } from '../../db/schema';
 import { formatCurrency, formatNumber, isLowStock, isCriticalStock } from '../../utils/formatters';
 import { DetailMutationCard } from './DetailMutationCard';
-import { 
-  X, 
-  ArrowUpRight, 
-  Plus, 
-  Minus, 
-  Edit2, 
-  Truck, 
-  History, 
-  Boxes,
-  Layers,
-  Sparkles
-} from 'lucide-react';
+import { X, ArrowUpRight, Plus, Minus, Edit2, Truck, History, Boxes, Layers, Sparkles } from 'lucide-react';
 
 interface ProductDetailModalProps {
   isOpen: boolean;
@@ -206,7 +195,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>+ Stok Masuk</span>
+                <span>Stok Masuk</span>
               </button>
 
               <button
@@ -218,7 +207,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
               >
                 <Minus className="w-4 h-4 stroke-[3]" />
-                <span>- Stok Keluar</span>
+                <span>Stok Keluar</span>
               </button>
             </div>
           </div>

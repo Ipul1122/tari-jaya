@@ -45,7 +45,7 @@ export const PaymentCustomerSelector: React.FC<PaymentCustomerSelectorProps> = (
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
           <User className="w-3.5 h-3.5 text-orange-600" />
-          <span>Nama Pembeli / Pelanggan <b className="text-red-500">*</b></span>
+          <span>Nama Pembeli / Tukang / Mandor <b className="text-red-500">*</b></span>
         </label>
         <button
           type="button"
@@ -53,7 +53,7 @@ export const PaymentCustomerSelector: React.FC<PaymentCustomerSelectorProps> = (
           className="text-[11px] font-bold text-orange-600 hover:text-orange-700 flex items-center space-x-1"
         >
           <UserPlus className="w-3 h-3" />
-          <span>+ Pelanggan Baru</span>
+          <span>Tukang / Mandor Baru</span>
         </button>
       </div>
 
@@ -65,7 +65,7 @@ export const PaymentCustomerSelector: React.FC<PaymentCustomerSelectorProps> = (
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Cari nama pelanggan..."
+              placeholder="Cari nama pelanggan, tukang, mandor..."
               className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-stone-50 border border-stone-200 text-slate-900 focus:outline-none focus:border-orange-500 min-h-[38px]"
             />
           </div>
@@ -87,7 +87,7 @@ export const PaymentCustomerSelector: React.FC<PaymentCustomerSelectorProps> = (
                   <span>{c.name}</span>
                   {c.hasActiveDebt && (
                     <span className="text-[10px] bg-red-100 text-red-700 px-1 py-0.2 rounded font-mono font-bold">
-                      Hutang {formatCurrency(c.activeDebt)}
+                      Kasbon {formatCurrency(c.activeDebt)}
                     </span>
                   )}
                 </button>
@@ -113,7 +113,7 @@ export const PaymentCustomerSelector: React.FC<PaymentCustomerSelectorProps> = (
         <div className="p-3 rounded-xl bg-orange-50/60 border border-orange-200 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-orange-800">
-              {selectedCustomer ? 'Pelanggan Terpilih:' : 'Data Pelanggan Baru:'}
+              {selectedCustomer ? 'Tukang / Pelanggan Terpilih:' : 'Data Tukang / Pembeli Baru:'}
             </span>
             <button
               type="button"
@@ -130,7 +130,7 @@ export const PaymentCustomerSelector: React.FC<PaymentCustomerSelectorProps> = (
                 type="text"
                 value={newCustomerName}
                 onChange={(e) => onNewCustomerNameChange(e.target.value)}
-                placeholder="Ketik nama lengkap pelanggan..."
+                placeholder="Ketik nama pembeli, tukang, atau mandor..."
                 className="w-full px-3 py-2 text-xs rounded-lg bg-white border border-stone-300 font-bold text-slate-900 focus:outline-none focus:border-orange-500 min-h-[38px]"
                 autoFocus
               />

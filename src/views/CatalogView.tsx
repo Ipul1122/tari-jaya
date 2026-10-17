@@ -29,7 +29,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -145,11 +145,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         {paginatedContainers.length === 0 ? (
           <div className="p-10 rounded-3xl bg-white border border-stone-200 text-center shadow-xs">
             <PackageSearch className="w-12 h-12 text-stone-300 mx-auto mb-2.5" />
-            <h3 className="text-sm font-bold text-slate-800">Barang tidak ditemukan</h3>
+            <h3 className="text-sm font-bold text-slate-800">Material tidak ditemukan</h3>
             <p className="text-xs text-stone-500 mt-1 max-w-[260px] mx-auto">
               {searchInput
-                ? `Tidak ada barang yang cocok dengan "${searchInput}".`
-                : 'Belum ada barang di katalog toko Anda.'}
+                ? `Tidak ada material yang cocok dengan "${searchInput}".`
+                : 'Belum ada material di katalog toko Anda.'}
             </p>
             <button
               onClick={() => {
@@ -159,7 +159,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               className="mt-4 inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white font-bold text-xs shadow-sm hover:bg-orange-700 active:scale-95 transition min-h-[44px]"
             >
               <Plus className="w-4 h-4" />
-              <span>Tambah Barang Sekarang</span>
+              <span>Tambah Material Sekarang</span>
             </button>
           </div>
         ) : (
@@ -182,7 +182,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       </div>
 
       {/* Pagination Footer */}
-      {totalPages > 1 && (
+      {totalContainers > 0 && (
         <div className="px-4 pb-4">
           <Pagination
             currentPage={safeCurrentPage}
@@ -190,6 +190,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             totalItems={totalContainers}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+            itemName="material"
+            itemsPerPageOptions={[5, 10, 20]}
           />
         </div>
       )}
