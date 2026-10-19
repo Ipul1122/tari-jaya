@@ -12,7 +12,14 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
+      const urlsToCache = [
+        new URL('./', self.location).href,
+        new URL('./index.html', self.location).href,
+        new URL('./manifest.json', self.location).href,
+        new URL('./logo-tari-jaya.png', self.location).href,
+        new URL('./favicon.png', self.location).href,
+      ];
+      return cache.addAll(urlsToCache);
     }).then(() => self.skipWaiting())
   );
 });
@@ -52,7 +59,11 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => {
           return caches.match(event.request).then((cached) => {
-            return cached || caches.match('/index.html') || caches.match('/');
+            return (
+              cached ||
+              caches.match(new URL('./index.html', self.location).href) ||
+              caches.match(new URL('./', self.location).href)
+            );
           });
         })
     );

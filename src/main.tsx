@@ -13,7 +13,7 @@ createRoot(document.getElementById('root')!).render(
 if ('serviceWorker' in navigator && !window.location.host.startsWith('localhost:')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(new URL('./sw.js', window.location.href).href)
       .catch((err) => console.warn('PWA ServiceWorker registration failed:', err));
   });
 }
