@@ -129,11 +129,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            <button onClick={() => productsCount === 0 && onOpenAddProduct ? onOpenAddProduct('') : onOpenStockIn()} className="flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition min-h-[46px]">
+            <button onClick={() => productsCount === 0 && onOpenAddProduct ? onOpenAddProduct('') : onOpenStockIn()} className="flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 active:scale-[0.98] transition min-h-[46px]">
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center"><Plus className="w-3.5 h-3.5 text-white stroke-[3]" /></div>
               <span className="text-white font-bold">Pembelian (Masuk)</span>
             </button>
-            <button onClick={() => productsCount === 0 && onOpenAddProduct ? onOpenAddProduct('') : onOpenStockOut()} className="flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 active:scale-[0.98] transition min-h-[46px]">
+            <button onClick={() => productsCount === 0 && onOpenAddProduct ? onOpenAddProduct('') : onOpenStockOut()} className="flex items-center justify-center space-x-2 py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 active:scale-[0.98] transition min-h-[46px]">
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center"><Minus className="w-3.5 h-3.5 text-white stroke-[3]" /></div>
               <span className="text-white font-bold">Penjualan (Keluar)</span>
             </button>

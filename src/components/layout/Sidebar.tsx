@@ -71,14 +71,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const barangItems: SubMenuItem[] = [
     { page: 'catalog', label: 'Katalog Master Barang', count: lowStockCount, icon: <Boxes className="w-4 h-4 text-stone-500" />, activeBg: 'bg-orange-100 text-orange-900 border-l-4 border-orange-500 font-bold' },
-    { page: 'stock-in', label: '3.1 Barang Masuk', badgeText: 'Beli / Restock', badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: <PackagePlus className="w-4 h-4 text-emerald-600" />, activeBg: 'bg-emerald-100 text-emerald-900 border-l-4 border-emerald-600 font-bold' },
-    { page: 'stock-out', label: '3.2 Barang Keluar', badgeText: 'Jual / Kasir', badgeClass: 'text-rose-700 bg-rose-50 border-rose-200', icon: <PackageMinus className="w-4 h-4 text-rose-600" />, activeBg: 'bg-rose-100 text-rose-900 border-l-4 border-rose-600 font-bold' },
+    { page: 'stock-in', label: '3.1 Barang Masuk', badgeText: 'Beli / Restock', badgeClass: 'text-rose-700 bg-rose-50 border-rose-200', icon: <PackagePlus className="w-4 h-4 text-rose-600" />, activeBg: 'bg-rose-100 text-rose-900 border-l-4 border-rose-600 font-bold' },
+    { page: 'stock-out', label: '3.2 Barang Keluar', badgeText: 'Jual / Kasir', badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: <PackageMinus className="w-4 h-4 text-emerald-600" />, activeBg: 'bg-emerald-100 text-emerald-900 border-l-4 border-emerald-600 font-bold' },
   ];
 
   const riwayatItems: SubMenuItem[] = [
     { page: 'history', label: 'Semua Log Mutasi', count: historyCount, icon: <History className="w-4 h-4 text-stone-500" />, activeBg: 'bg-orange-100 text-orange-900 border-l-4 border-orange-500 font-bold' },
-    { page: 'history-in', label: '4.1 Riwayat Masuk', badgeText: 'Log Pembelian', badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: <ArrowDownLeft className="w-4 h-4 text-emerald-600" />, activeBg: 'bg-emerald-100 text-emerald-900 border-l-4 border-emerald-600 font-bold' },
-    { page: 'history-out', label: '4.2 Riwayat Keluar', badgeText: 'Log Penjualan', badgeClass: 'text-rose-700 bg-rose-50 border-rose-200', icon: <ArrowUpRight className="w-4 h-4 text-rose-600" />, activeBg: 'bg-rose-100 text-rose-900 border-l-4 border-rose-600 font-bold' },
+    { page: 'history-in', label: '4.1 Riwayat Masuk', badgeText: 'Log Pembelian', badgeClass: 'text-rose-700 bg-rose-50 border-rose-200', icon: <ArrowDownLeft className="w-4 h-4 text-rose-600" />, activeBg: 'bg-rose-100 text-rose-900 border-l-4 border-rose-600 font-bold' },
+    { page: 'history-out', label: '4.2 Riwayat Keluar', badgeText: 'Log Penjualan', badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: <ArrowUpRight className="w-4 h-4 text-emerald-600" />, activeBg: 'bg-emerald-100 text-emerald-900 border-l-4 border-emerald-600 font-bold' },
   ];
 
   const renderGroup = (title: string, num: string, isOpen: boolean, onToggle: () => void, items: SubMenuItem[]) => (

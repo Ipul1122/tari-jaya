@@ -192,7 +192,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   onClose();
                   onStockIn(product);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
+                className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>Stok Masuk</span>
@@ -204,7 +204,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   onClose();
                   onStockOut(product);
                 }}
-                className="py-2.5 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
+                className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition min-h-[44px]"
               >
                 <Minus className="w-4 h-4 stroke-[3]" />
                 <span>Stok Keluar</span>

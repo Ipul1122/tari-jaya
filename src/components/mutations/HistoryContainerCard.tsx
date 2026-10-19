@@ -59,16 +59,16 @@ export const HistoryContainerCard: React.FC<HistoryContainerCardProps> = ({
           <div
             className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs ${
               isStockIn
-                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                ? 'bg-red-100 text-red-800 border border-red-200'
                 : isWalkIn
                 ? 'bg-stone-100 text-stone-600 border border-stone-200'
                 : container.hasKasbon
                 ? 'bg-sky-100 text-sky-800 border border-sky-200'
-                : 'bg-rose-100 text-rose-800 border border-rose-200'
+                : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
             }`}
           >
             {isStockIn ? (
-              <PackagePlus className="w-5 h-5 text-emerald-700" />
+              <PackagePlus className="w-5 h-5 text-red-700" />
             ) : isWalkIn ? (
               <User className="w-5 h-5 text-stone-500" />
             ) : (
@@ -83,8 +83,8 @@ export const HistoryContainerCard: React.FC<HistoryContainerCardProps> = ({
                 {container.title}
               </h4>
               {isStockIn ? (
-                <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 shrink-0">
-                  <ArrowDownLeft className="w-3 h-3 text-emerald-600" />
+                <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-800 border border-red-200 shrink-0">
+                  <ArrowDownLeft className="w-3 h-3 text-red-600" />
                   <span>Masuk</span>
                 </span>
               ) : container.hasKasbon ? (
@@ -93,8 +93,8 @@ export const HistoryContainerCard: React.FC<HistoryContainerCardProps> = ({
                   <span>Kasbon</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
-                  <ArrowUpRight className="w-3 h-3 text-rose-600" />
+                <span className="inline-flex items-center space-x-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                  <ArrowUpRight className="w-3 h-3 text-emerald-600" />
                   <span>Penjualan</span>
                 </span>
               )}

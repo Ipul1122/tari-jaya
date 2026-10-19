@@ -174,7 +174,7 @@ export const StockInView: React.FC<StockInViewProps> = ({
                   </div>
                   <button
                     onClick={() => onOpenStockIn(p)}
-                    className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 active:scale-95 transition shrink-0 min-h-[36px]"
+                    className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 active:scale-95 transition shrink-0 min-h-[36px]"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[3]" />
                     <span>Masuk</span>

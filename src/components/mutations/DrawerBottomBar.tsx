@@ -62,7 +62,7 @@ export const DrawerBottomBar: React.FC<DrawerBottomBarProps> = ({
               disabled={isSubmitting || itemCount === 0}
               className={`flex-1 py-3 px-4 rounded-xl text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 min-h-[46px] ${
                 isStockIn
-                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 disabled:bg-stone-300'
+                  ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20 disabled:bg-stone-300'
                   : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25 disabled:bg-stone-300'
               }`}
             >

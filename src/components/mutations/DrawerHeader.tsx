@@ -28,7 +28,7 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
         <div className="flex items-center space-x-2.5">
           <div
             className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-              isStockIn ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+              isStockIn ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
             }`}
           >
             {isStockIn ? (
@@ -68,8 +68,8 @@ export const DrawerHeader: React.FC<DrawerHeaderProps> = ({
           onClick={() => onSwitchType(isStockIn ? 'OUT' : 'IN')}
           className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-2xs active:scale-95 ${
             isStockIn
-              ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+              : 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
           }`}
         >
           {isStockIn ? (

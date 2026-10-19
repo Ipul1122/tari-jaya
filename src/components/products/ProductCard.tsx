@@ -173,18 +173,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="mt-3 pt-2.5 border-t border-stone-100 grid grid-cols-2 gap-2">
         <button
           onClick={() => onStockIn(product)}
-          className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 active:scale-[0.98] transition font-bold text-xs min-h-[44px]"
+          className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 active:scale-[0.98] transition font-bold text-xs min-h-[44px]"
         >
-          <Plus className="w-4 h-4 text-emerald-600 stroke-[3]" />
-          <span className="text-emerald-700 font-bold">Masuk</span>
+          <Plus className="w-4 h-4 text-red-600 stroke-[3]" />
+          <span className="text-red-700 font-bold">Masuk</span>
         </button>
 
         <button
           onClick={() => onStockOut(product)}
-          className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-300 active:scale-[0.98] transition font-bold text-xs min-h-[44px]"
+          className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 active:scale-[0.98] transition font-bold text-xs min-h-[44px]"
         >
-          <Minus className="w-4 h-4 text-orange-600 stroke-[3]" />
-          <span className="text-orange-700 font-bold">Keluar</span>
+          <Minus className="w-4 h-4 text-emerald-600 stroke-[3]" />
+          <span className="text-emerald-700 font-bold">Keluar</span>
         </button>
       </div>
     </div>

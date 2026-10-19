@@ -53,7 +53,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
 
   const effectiveCustomerName = selectedCustomer
     ? selectedCustomer.name
-    : newCustomerName.trim();
+    : (newCustomerName.trim() || searchQuery.trim());
 
   const isKasbon = paymentType === 'KASBON';
   const remainingDebt = Math.max(0, totalValue - dpAmount);
@@ -85,21 +85,18 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!effectiveCustomerName) {
-      setError('Wajib pilih atau buat nama pelanggan/pembayar terlebih dahulu');
-      return;
-    }
-
     if (isKasbon && dpAmount > totalValue) {
       setError('Uang muka tidak boleh melebihi total belanja');
       return;
     }
 
+    const finalCustomerName = effectiveCustomerName || 'Umum';
+
     setIsSubmitting(true);
     try {
       const mutationNote = isKasbon
-        ? `Kasbon: ${effectiveCustomerName} (Sisa ${formatCurrency(remainingDebt)})`
-        : `Pembeli: ${effectiveCustomerName} (Lunas)`;
+        ? `Kasbon: ${finalCustomerName} (Sisa ${formatCurrency(remainingDebt)})`
+        : (finalCustomerName === 'Umum' ? 'Penjualan Lunas (Umum)' : `Pembeli: ${finalCustomerName} (Lunas)`);
 
       const batchId = `SALE-${Date.now()}`;
 
@@ -109,7 +106,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           notes: item.notes ? `${mutationNote} - ${item.notes}` : mutationNote,
-          customerName: effectiveCustomerName,
+          customerName: finalCustomerName,
           batchId,
           allowNegativeStock: allowNegative,
         })),
@@ -119,7 +116,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
       const itemSummary = items.map((i) => `${i.product.name} (${i.quantity})`).join(', ');
       await createDebt({
         type: 'PIUTANG',
-        person_name: effectiveCustomerName,
+        person_name: finalCustomerName,
         phone: newCustomerPhone.trim() || selectedCustomer?.phone || undefined,
         total_amount: totalValue,
         paid_amount: isKasbon ? dpAmount : totalValue,
@@ -136,7 +133,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
 
       const receipt = buildReceiptFromCheckout(
         items,
-        effectiveCustomerName,
+        finalCustomerName,
         newCustomerPhone.trim() || selectedCustomer?.phone,
         totalValue,
         isKasbon,
@@ -145,7 +142,7 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
         batchId
       );
 
-      onSuccess(effectiveCustomerName, isKasbon, receipt);
+      onSuccess(finalCustomerName, isKasbon, receipt);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Gagal memproses pembayaran';
       setError(msg);
@@ -270,13 +267,11 @@ export const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
           <button
             type="button"
             onClick={handleConfirmPayment}
-            disabled={isSubmitting || !effectiveCustomerName}
+            disabled={isSubmitting}
             className={`flex-1 py-3 px-4 rounded-xl text-white font-bold text-xs shadow-md active:scale-95 transition flex items-center justify-center space-x-1.5 min-h-[46px] ${
-              !effectiveCustomerName
-                ? 'bg-stone-300 cursor-not-allowed text-stone-500'
-                : isKasbon
-                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/25'
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
+              isKasbon
+                ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/25'
+                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
             }`}
           >
             <span>{isSubmitting ? 'Memproses...' : 'Konfirmasi & Masuk Riwayat'}</span>

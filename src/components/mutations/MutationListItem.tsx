@@ -51,8 +51,8 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({
         <span
           className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide ${
             isIn
-              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-              : 'bg-red-100 text-red-700 border border-red-200'
+              ? 'bg-red-100 text-red-800 border border-red-200'
+              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
           }`}
         >
           {isIn ? <ArrowDownRight className="w-3 h-3 stroke-[3]" /> : <ArrowUpRight className="w-3 h-3 stroke-[3]" />}
@@ -72,8 +72,8 @@ export const MutationListItem: React.FC<MutationListItemProps> = ({
           <div
             className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
               isIn
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-red-50 text-red-700 border border-red-200'
+                ? 'bg-red-50 text-red-700 border border-red-200'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
             }`}
           >
             {isIn ? <ArrowDownRight className="w-4 h-4 stroke-[2.5]" /> : <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />}
