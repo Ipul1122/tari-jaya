@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { exportReportsToExcel } from '../../utils/exportExcel';
 import { restoreDatabaseFromExcel } from '../../utils/excelRestore';
 import { restoreDatabaseFromJson } from '../../db/backup';
-import { clearAllDatabaseData, type StockMutation } from '../../db/schema';
+import { db, clearAllDatabaseData, type StockMutation } from '../../db/schema';
 import { useToast } from '../common/Toast';
 import { PopoverConfirm } from '../common/PopoverConfirm';
+import { ExcelExportPeriodModal, type ExportPeriodConfig } from './ExcelExportPeriodModal';
 import logoTariJaya from '../../assets/logo-tari-jaya.png';
 import { 
   FileSpreadsheet, 
@@ -24,14 +25,15 @@ interface BackupRestoreSectionProps {
 }
 
 export const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
-  periodLabel,
-  startDate,
-  endDate,
-  mutations,
+  periodLabel: _periodLabel,
+  startDate: _startDate,
+  endDate: _endDate,
+  mutations: _mutations,
   onRefresh,
   onDataRestored,
 }) => {
   const { showToast } = useToast();
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState<boolean>(false);
@@ -50,16 +52,31 @@ export const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
     }
   };
 
-  const handleExportExcel = async () => {
+  const handleConfirmExportPeriod = async (config: ExportPeriodConfig) => {
     try {
       setIsExportingExcel(true);
+      let targetMutations = await db.stock_mutations.toArray();
+
+      if (config.startDate) {
+        const start = `${config.startDate}T00:00:00.000Z`;
+        const end = config.endDate ? `${config.endDate}T23:59:59.999Z` : '';
+        targetMutations = targetMutations.filter((m) => {
+          if (config.key === 'LAST_4_6_MONTHS') {
+            return m.timestamp >= start && m.timestamp < end;
+          }
+          return m.timestamp >= start;
+        });
+      }
+
       const filename = await exportReportsToExcel({
-        periodLabel,
-        startDate,
-        endDate,
-        mutations,
+        periodLabel: config.label,
+        startDate: config.startDate,
+        endDate: config.endDate,
+        mutations: targetMutations,
       });
-      showToast(`File Excel berhasil diunduh: ${filename}`, 'success');
+
+      setIsExportModalOpen(false);
+      showToast(`File Excel (${config.label}) berhasil diunduh: ${filename}`, 'success');
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Gagal mengekspor data ke Excel', 'error');
     } finally {
@@ -125,7 +142,7 @@ export const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
           {/* Download Excel */}
           <button
-            onClick={handleExportExcel}
+            onClick={() => setIsExportModalOpen(true)}
             disabled={isExportingExcel}
             className="py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-sm active:scale-95 transition min-h-[46px]"
           >
@@ -199,6 +216,13 @@ export const BackupRestoreSection: React.FC<BackupRestoreSectionProps> = ({
           </p>
         </div>
       </div>
+
+      <ExcelExportPeriodModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirmExport={handleConfirmExportPeriod}
+        isExporting={isExportingExcel}
+      />
     </div>
   );
 };

@@ -118,7 +118,32 @@ export function generateReceiptHtml(receipt: ReceiptData): string {
 </html>`;
 }
 
+declare global {
+  interface Window {
+    AndroidPrint?: {
+      printHtml: (html: string) => void;
+    };
+  }
+}
+
 export function printReceipt(receipt: ReceiptData): void {
+  const html = generateReceiptHtml(receipt);
+
+  // 1. Native Android print handler via AndroidPrintBridge in MainActivity
+  if (
+    typeof window !== 'undefined' &&
+    window.AndroidPrint &&
+    typeof window.AndroidPrint.printHtml === 'function'
+  ) {
+    try {
+      window.AndroidPrint.printHtml(html);
+      return;
+    } catch (err) {
+      console.warn('Native Android print failed, falling back to iframe print', err);
+    }
+  }
+
+  // 2. Standard Web Browser / Desktop print fallback via iframe
   const existingFrame = document.getElementById('tari-receipt-print-frame');
   if (existingFrame) {
     existingFrame.remove();
@@ -141,7 +166,6 @@ export function printReceipt(receipt: ReceiptData): void {
     return;
   }
 
-  const html = generateReceiptHtml(receipt);
   doc.open();
   doc.write(html);
   doc.close();
